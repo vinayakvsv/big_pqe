@@ -1,5 +1,0 @@
-# prevent datasets/ from being committed
-datasets/
-
-# prevent dataset2
-datasets2/
