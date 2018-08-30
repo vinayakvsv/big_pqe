@@ -25,7 +25,9 @@ library(Biobase)
 library(GEOquery)
 # source("GEOpatch.R")
 library(limma)
+```
 
+```{r downloadgeo}
 # load series and platform data from GEO
 
 gset <- getGEO("GSE57341",destdir = getwd())
@@ -34,6 +36,10 @@ gset <- gset[[idx]]
 
 # make proper column names to match toptable 
 fvarLabels(gset) <- make.names(fvarLabels(gset))
+
+```
+
+```{r define_conditions}
 
 # group names for all samples
 gsms <- paste0("XXXX0000XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
@@ -57,7 +63,9 @@ LogC <- (qx[5] > 100) ||
           (qx[2] > 0 && qx[2] < 1 && qx[4] > 1 && qx[4] < 2)
 if (LogC) { ex[which(ex <= 0)] <- NaN
   exprs(gset) <- log2(ex) }
+```
 
+```{r limmafit}
 # set up the data and proceed with analysis
 sml <- paste("G", sml, sep="")    # set group names
 fl <- as.factor(sml)
@@ -70,14 +78,14 @@ fit2 <- contrasts.fit(fit, cont.matrix)
 fit2 <- eBayes(fit2, 0.01)
 tT <- topTable(fit2, adjust="fdr", sort.by="B", number=250)
 
-tT <- subset(tT, select=c("ID","adj.P.Val","P.Value","t","B","logFC","Gene.symbol","Gene.title"))
-write.table(tT, file=stdout(), row.names=F, sep="\t")
+tT <- subset(tT, select=c("ID","adj.P.Val","P.Value","t","B","logFC","GENE_SYMBOL","GENE_NAME"))
+```
 
-
+```{r boxplot}
 ################################################################
 #   Boxplot for selected GEO samples
-library(Biobase)
-library(GEOquery)
+# library(Biobase)
+# library(GEOquery)
 
 # load series and platform data from GEO
 
@@ -93,7 +101,7 @@ gsms <- paste0("XXXX0000XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
         "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
 sml <- c()
 for (i in 1:nchar(gsms)) { sml[i] <- substr(gsms,i,i) }
-sml <- paste("G", sml, sep="")  set group names
+sml <- paste("G", sml, sep="")  # set group names
 
 # eliminate samples marked as "X"
 sel <- which(sml != "X")
@@ -116,9 +124,14 @@ legend("topleft", labels, fill=palette(), bty="n")
 
 ```
 
-Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
 
-When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+I should also write out the metadata for this data and set the different conditions I want to test
 
-The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+## Goals of this analysis 
+
+I would like to...
+
+1. Compare the Aza-treated cell lines with non-treated cell lines. Specifically, find the genes that are not differentially expressed amongst the Aza-treated cell lines but are all differentially expressed with respect to their untreated counterparts. Keep the "up" and "down" genes separately
+2. For each cell line studied, find the genes that go up 
+3. Determine whether this signature is enriched for immune genes (use GSVA for this purpose)
 
