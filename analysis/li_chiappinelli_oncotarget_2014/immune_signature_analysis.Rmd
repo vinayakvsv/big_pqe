@@ -5,7 +5,7 @@ output: html_notebook
 
 # Setup packages
 ```{r setup}
-source("https://bioconductor.org/biocLite.R")
+# source("https://bioconductor.org/biocLite.R")
 biocLite("Biobase")
 biocLite("GEOquery")
 biocLite("limma")
@@ -13,7 +13,7 @@ biocLite("limma")
 
 
 
-# Generate a heatmap
+# Import the data
 
 ```{r sig1}
 # Version info: R 3.2.3, Biobase 2.30.0, GEOquery 2.40.0, limma 3.26.8
@@ -30,14 +30,43 @@ library(limma)
 ```{r downloadgeo}
 # load series and platform data from GEO
 
-gset <- getGEO("GSE57341",destdir = getwd())
-if (length(gset) > 1) idx <- grep("GPL4133", attr(gset, "names")) else idx <- 1
-gset <- gset[[idx]]
+gset0 <- getGEO("GSE57341",destdir = getwd())
+if (length(gset0) > 1) {
+  idx <- grep("GPL4133", attr(gset, "names")) 
+} else {
+  idx <- 1
+}
+
+gset <- gset0[[idx]]
 
 # make proper column names to match toptable 
 fvarLabels(gset) <- make.names(fvarLabels(gset))
 
 ```
+
+Is there some way we can import the metadata used for this study?
+
+Yes
+
+```{r set_design}
+gset_meta <- data.frame(cell_line = gset$`cell line:ch1`,
+                        cell_type = gset$`cell type:ch2`,
+                        time = gset$`time point:ch1`,
+                        source_ch1 = gset$source_name_ch1,
+                        source_ch2 = gset$source_name_ch2)
+rownames(gset_meta) <- gset$geo_accession
+```
+
+# Set a comparison
+
+Note that every sample consists of two channels: one corresponding to the control (untreated) and one corresponding to the AZA. So, every sample will have a set of genes that differ in the treatment versus a control. We want to examine 
+
+```{r get_aza}
+
+```
+
+
+
 
 ```{r define_conditions}
 
@@ -53,24 +82,24 @@ for (i in 1:nchar(gsms)) { sml[i] <- substr(gsms,i,i) }
 # eliminate samples marked as "X"
 sel <- which(sml != "X")
 sml <- sml[sel]
-gset <- gset[ ,sel]
+gset_reduced <- gset[ ,sel]
 
 # log2 transform
-ex <- exprs(gset)
+ex <- exprs(gset_reduced)
 qx <- as.numeric(quantile(ex, c(0., 0.25, 0.5, 0.75, 0.99, 1.0), na.rm=T))
 LogC <- (qx[5] > 100) ||
           (qx[6]-qx[1] > 50 && qx[2] > 0) ||
           (qx[2] > 0 && qx[2] < 1 && qx[4] > 1 && qx[4] < 2)
 if (LogC) { ex[which(ex <= 0)] <- NaN
-  exprs(gset) <- log2(ex) }
+  exprs(gset_reduced) <- log2(ex) }
 ```
 
 ```{r limmafit}
 # set up the data and proceed with analysis
 sml <- paste("G", sml, sep="")    # set group names
 fl <- as.factor(sml)
-gset$description <- fl
-design <- model.matrix(~ description + 0, gset)
+gset_reduced$description <- fl
+design <- model.matrix(~ description + 0, gset_reduced) # perhaps we can 
 colnames(design) <- levels(fl)
 fit <- lmFit(gset, design)
 cont.matrix <- makeContrasts(G1-G0, levels=design)
@@ -78,35 +107,35 @@ fit2 <- contrasts.fit(fit, cont.matrix)
 fit2 <- eBayes(fit2, 0.01)
 tT <- topTable(fit2, adjust="fdr", sort.by="B", number=250)
 
-tT <- subset(tT, select=c("ID","adj.P.Val","P.Value","t","B","logFC","GENE_SYMBOL","GENE_NAME"))
+# tT <- subset(tT, select=c("ID","adj.P.Val","P.Value","t","B","logFC","GENE_SYMBOL","GENE_NAME"))
 ```
 
 ```{r boxplot}
 ################################################################
-#   Boxplot for selected GEO samples
-# library(Biobase)
-# library(GEOquery)
-
-# load series and platform data from GEO
-
-gset <- getGEO("GSE57341", GSEMatrix =TRUE, getGPL=FALSE)
-if (length(gset) > 1) idx <- grep("GPL4133", attr(gset, "names")) else idx <- 1
-gset <- gset[[idx]]
-
-# group names for all samples in a series
-gsms <- paste0("XXXX0000XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
-        "XXXXXXXXXXX1111XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
-        "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
-        "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
-        "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
-sml <- c()
-for (i in 1:nchar(gsms)) { sml[i] <- substr(gsms,i,i) }
-sml <- paste("G", sml, sep="")  # set group names
-
-# eliminate samples marked as "X"
-sel <- which(sml != "X")
-sml <- sml[sel]
-gset <- gset[ ,sel]
+# #   Boxplot for selected GEO samples
+# # library(Biobase)
+# # library(GEOquery)
+# 
+# # load series and platform data from GEO
+# 
+# gset <- getGEO("GSE57341", GSEMatrix =TRUE, getGPL=FALSE)
+# if (length(gset) > 1) idx <- grep("GPL4133", attr(gset, "names")) else idx <- 1
+# gset <- gset[[idx]]
+# 
+# # group names for all samples in a series
+# gsms <- paste0("XXXX0000XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+#         "XXXXXXXXXXX1111XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+#         "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+#         "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+#         "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+# sml <- c()
+# for (i in 1:nchar(gsms)) { sml[i] <- substr(gsms,i,i) }
+# sml <- paste("G", sml, sep="")  # set group names
+# 
+# # eliminate samples marked as "X"
+# sel <- which(sml != "X")
+# sml <- sml[sel]
+# gset <- gset[ ,sel]
 
 # order samples by group
 ex <- exprs(gset)[ , order(sml)]
