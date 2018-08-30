@@ -1,3 +1,4 @@
 # prevent datasets from being committed
 datasets/
 
+.Rproj.user

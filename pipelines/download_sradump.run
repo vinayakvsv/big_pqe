@@ -1,0 +1,28 @@
+#!/bin/bash
+#SBATCH -p medium
+#SBATCH -t 0-48:00
+#SBATCH -n 4
+#SBATCH -N 1
+#SBATCH --mem=12G
+#SBATCH -o %j.out.txt #outfile
+#SBATCH -e %j.err.txt #errfile
+
+module load gcc/6.2.0 sratoolkit/2.8.1
+
+insrr=$1
+outdir=$2
+
+#100 CNS mouse
+# srrnum=${insrr:0:6}
+srrnum=${insrr#*SRR}
+#echo ${FOO:0:10}
+#wget ftp://ftp-trace.ncbi.nih.gov/sra/sra-instant/reads/ByRun/sra/SRR/$srrnum/$insrr/$insrr.sra
+
+wget --directory-prefix=$outdir ftp://ftp-trace.ncbi.nih.gov/sra/sra-instant/reads/ByRun/sra/SRR/$srrnum/$insrr/$insrr.sra
+fastq-dump --split-files --outdir $outdir --gzip $outdir/$insrr.sra
+
+# rename statements
+# mv $insrr"_1.fastq.gz" $insirr"_R1.fastq.gz"
+# mv $insrr"_2.fastq.gz" $insirr"_R2.fastq.gz"
+
+echo -e "fastq-dump --outdir $outdir --gzip $insrr" >> $outdir/jobsubmit.txt

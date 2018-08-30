@@ -1,0 +1,28 @@
+#!/bin/bash
+
+insrrlist=$1
+outdir=$2
+
+# get the current working directory
+scriptdir=$(dirname $0)
+mkdir -p $outdir
+
+# make this into a job array
+nfiles=$(grep -c "^" $insrrlist)
+sbatch --array=1-$nfiles%20 $scriptdir"/core_download_sra_bylist.run" $insrrlist $outdir
+
+
+# /n/data1/hms/dbmi/park/vinay/pipelines/samtools_utilities/core_compute_pileups.2.sh $config $filesuffix
+
+
+#for i in $(cut -f1 $insrrlist); do
+#	# echo "SRR$i
+##	sbatch /n/data1/hms/dbmi/park/splitseq_analysis/sra_fastqdump/download_sra.run "SRR$i" $outdir
+#	sbatch $scriptdir"/download_sradump.run" "SRR$i" $outdir
+## 	sbatch /n/data1/hms/dbmi/park/splitseq_analysis/sra_fastqdump/download_sradump.run $i $outdir
+#done
+
+echo -e "Output directory is $outdir"
+
+
+# sbatch --array=1-$nfiles%20 /n/data1/hms/dbmi/park/vinay/pipelines/samtools_utilities/core_compute_pileups.2.sh $config $filesuffix

@@ -1,0 +1,16 @@
+outdir=$1
+start=$2
+end=$3
+
+# get the current working directory
+scriptdir=$(dirname $0)
+
+for i in $(seq $start $end); do
+	echo "SRR$i"
+#	sbatch /n/data1/hms/dbmi/park/splitseq_analysis/sra_fastqdump/download_sra.run "SRR$i" $outdir
+	sbatch $scriptdir"/download_sradump.run" "SRR$i" $outdir
+# 	sbatch /n/data1/hms/dbmi/park/splitseq_analysis/sra_fastqdump/download_sradump.run "SRR$i" $outdir
+done
+
+# echo "Note: SRR6750041 is 100 CNS; SRR6750042-SRR6750055 is 150,000 CNS; both are from mouse" 
+echo -e "Output directory is $outdir"
