@@ -135,7 +135,7 @@ plot(tT_subset$logFC,
      col=as.factor(tT_subset$adj.P.Val <= alpha))
 ```
 
-```{r boxplot}
+```{}
 ################################################################
 # #   Boxplot for selected GEO samples
 # # library(Biobase)
