@@ -1,0 +1,38 @@
+---
+title: "Signature extraction from Canadas et al 2018"
+output: html_notebook
+---
+
+# From GEO2R
+
+```{r}
+# Version info: R 3.2.3, Biobase 2.30.0, GEOquery 2.40.0, limma 3.26.8
+# R scripts generated  Fri Aug 31 00:53:50 EDT 2018
+
+
+# Server: www.ncbi.nlm.nih.gov
+# Query: acc=GSE45120&platform=GPL6244&type=txt&groups=ZR-75-1|ZR-75-30&colors=dfeaf4|f4dfdf&selection=XXXXXX&padj=fdr&logtransform=auto&columns=ID&columns=adj.P.Val&columns=P.Value&columns=t&columns=B&columns=logFC&columns=Gene+symbol&columns=Gene+title&num=250&annot=ncbi
+
+# Unable to generate script analyzing differential expression.
+#      Invalid input: at least two groups of samples should be selected.
+
+################################################################
+#   Boxplot for selected GEO samples
+library(Biobase)
+library(GEOquery)
+
+# load series and platform data from GEO
+
+canadas_data <- paste(getwd(),,"datasets","canadas_2018/",sep = "/")
+gset <- getGEO("GSE45120", GSEMatrix =TRUE, getGPL=FALSE,destdir = canadas_data)
+if (length(gset) > 1) idx <- grep("GPL6244", attr(gset, "names")) else idx <- 1
+gset <- gset[[idx]]
+
+# set parameters and draw the plot
+palette(c("#dfeaf4","#f4dfdf", "#AABBCC"))
+dev.new(width=4+dim(gset)[[2]]/5, height=6)
+par(mar=c(2+round(max(nchar(sampleNames(gset)))/2),4,2,1))
+title <- paste ("GSE45120", '/', annotation(gset), " selected samples", sep ='')
+boxplot(exprs(gset), boxwex=0.7, notch=T, main=title, outline=FALSE, las=2)
+
+```
