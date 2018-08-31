@@ -29,8 +29,8 @@ library(limma)
 
 ```{r downloadgeo}
 # load series and platform data from GEO
-
-gset0 <- getGEO("GSE57341",destdir = getwd())
+li_et_al_2014_data <- paste(getwd(),,"datasets","li_chiappinelli_oncotarget_2014/",sep = "/")
+gset0 <- getGEO("GSE57341",destdir = li_et_al_2014_data)
 if (length(gset0) > 1) {
   idx <- grep("GPL4133", attr(gset, "names")) 
 } else {
@@ -44,38 +44,7 @@ fvarLabels(gset) <- make.names(fvarLabels(gset))
 
 ```
 
-Is there some way we can import the metadata used for this study?
-
-Yes
-
-```{r set_design}
-gset_meta <- data.frame(cell_line = gset$`cell line:ch1`,
-                        cell_type = gset$`cell type:ch2`,
-                        time = gset$`time point:ch1`,
-                        source_ch1 = gset$source_name_ch1,
-                        source_ch2 = gset$source_name_ch2)
-rownames(gset_meta) <- gset$geo_accession
-```
-
-# Set a comparison
-
-Note that every sample consists of two channels: one corresponding to the control (untreated) and one corresponding to the AZA. So, every sample will have a set of genes that differ in the treatment versus a control. For each gene, the colors for one of the two channel indicates whether the gene has a raised expression level in the treatment or control. We want to examine whether the genes that differ for one set of channels corresponding to a condition are different as the genesthat differ for another set of channels corresponding to a different condition.
-
-We will compare the following: 
-1. Each of the timepoints -- we want those that remain high even 14 days after induction
-2. Each type of tissue
-3. Each cell line--we want to get the genes that differ the least and are elevated in Aza
-
-```{r set_by_cell_line}
-
-is_breast <- which(grepl(pattern = "breast",x = gset_meta$cell_type))
-is_ovarian <- which(grepl(pattern = "ovarian",x = gset_meta$cell_type))
-is_colon <- which(grepl(pattern = "colon",x = gset_meta$cell_type))
-
-```
-
-
-
+Test out limma...
 
 ```{r define_conditions}
 
@@ -193,6 +162,72 @@ I would like to...
 # Compare the three cell lines
 
 ## set up design matrix
+
+Is there some way we can import the metadata used for this study?
+
+Yes
+
+```{r set_design}
+gset_meta <- data.frame(cell_line = gset$`cell line:ch1`,
+                        cell_type = gset$`cell type:ch2`,
+                        time = gset$`time point:ch1`,
+                        source_ch1 = gset$source_name_ch1,
+                        source_ch2 = gset$source_name_ch2)
+rownames(gset_meta) <- gset$geo_accession
+```
+
+Note that every sample consists of two channels: one corresponding to the control (untreated) and one corresponding to the AZA. So, every sample will have a set of genes that differ in the treatment versus a control. For each gene, the colors for one of the two channel indicates whether the gene has a raised expression level in the treatment or control. We want to examine whether the genes that differ for one set of channels corresponding to a condition are different as the genesthat differ for another set of channels corresponding to a different condition.
+
+We will compare the following: 
+1. Each of the timepoints -- we want those that remain high even 14 days after induction
+2. Each type of tissue
+3. Each cell line--we want to get the genes that differ the least and are elevated in Aza
+
+```{r set_by_cell_line}
+
+is_breast <- which(grepl(pattern = "breast",x = gset_meta$cell_type))
+breast_group <- rep('breast',length(is_breast))
+
+is_ovarian <- which(grepl(pattern = "ovarian",x = gset_meta$cell_type))
+ovarian_group <- rep('ovarian',length(is_ovarian))
+
+is_colon <- which(grepl(pattern = "colon",x = gset_meta$cell_type))
+colon_group <- rep('colon',length(is_colon))
+
+by_cell_type <- data.frame(sample = c(is_breast,is_ovarian,is_colon),
+                           cellgroup = c(breast_group,ovarian_group,colon_group))
+by_cell_type <- by_cell_type[order(by_cell_type$sample),]
+
+# convert these into three groups and, when doing the comparison, see 13.3 in http://www.bioconductor.org/packages/devel/bioc/vignettes/limma/inst/doc/usersguide.pdf 
+
+
+```
+
+Set the group description and perform analysis
+```{r}
+gset$bycell <- by_cell_type$cellgroup
+design <- model.matrix(~ bycell + 0, gset) # perhaps we can 
+colnames(design) <- unique(by_cell_type$cellgroup)
+fit_bycell <- lmFit(gset, design)
+# compare breast to all 
+cont.matrix <- makeContrasts(breast-colon, levels=design)
+# fit1 <- contrasts.fit(fit,cont.matrix)
+fit2 <- contrasts.fit(fit_bycell, cont.matrix)
+# fit1 <- eBayes(fit1, 1)
+fit2 <- eBayes(fit2, 0.01)
+tT <- topTable(fit2, adjust="fdr", sort.by="B", number=250)
+# allT <- topTable(fit2, adjust="none", sort.by="B",number = nrow(fit2))
+tT <- topTable(fit2, adjust="fdr", sort.by="B",number = nrow(fit2))
+
+# write results
+# write.table(x = tT,file = paste(getwd(),"topTable.txt",sep = "/"),quote = FALSE,sep = "\t",row.names = TRUE,col.names = TRUE)
+
+# allT_subset <- subset(allT, select=c("ID","adj.P.Val","P.Value","t","B","logFC","GENE_SYMBOL","GENE_NAME"))
+tT_subset <- subset(tT, select=c("ID","adj.P.Val","P.Value","t","B","logFC","GENE_SYMBOL","GENE_NAME"))
+
+```
+
+
 
 ## Calculate B and t statistics for each contrast
 
