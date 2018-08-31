@@ -161,6 +161,10 @@ I would like to...
 
 # Compare the three cell lines
 
+See Li et al Oncotarget 2014 Table 1 in “Interferon” for “Common to all 3 cancers” 
+
+To answer question #2 for Chiappinelli, look at Li’s analysis and identify the same signatures (if you must reproduce). You should be doing differential expression analysis across the time points for each specific cancer and then finding which genes are consistently upregulated when applying the AZA treatment. 
+
 ## set up design matrix
 
 Is there some way we can import the metadata used for this study?
@@ -183,6 +187,17 @@ We will compare the following:
 2. Each type of tissue
 3. Each cell line--we want to get the genes that differ the least and are elevated in Aza
 
+```{r set_by_time}
+timepoint <- sapply(X = unique(gset_meta$time),
+                    function(t) {
+                      a <- which(grepl(pattern = paste0(t,"$"),x = gset_meta$time,perl = TRUE))
+                      names(a) <- rep(t,length(a))
+                      a
+                      })
+timepoint <- sort(unlist(timepoint))
+#names(timepoint) <- unique(gset_meta$time)
+```
+
 ```{r set_by_cell_line}
 
 is_breast <- which(grepl(pattern = "breast",x = gset_meta$cell_type))
@@ -197,6 +212,7 @@ colon_group <- rep('colon',length(is_colon))
 by_cell_type <- data.frame(sample = c(is_breast,is_ovarian,is_colon),
                            cellgroup = c(breast_group,ovarian_group,colon_group))
 by_cell_type <- by_cell_type[order(by_cell_type$sample),]
+by_cell_type$time <- names(timepoint)
 
 # convert these into three groups and, when doing the comparison, see 13.3 in http://www.bioconductor.org/packages/devel/bioc/vignettes/limma/inst/doc/usersguide.pdf 
 
@@ -206,9 +222,10 @@ by_cell_type <- by_cell_type[order(by_cell_type$sample),]
 Set the group description and perform analysis
 ```{r}
 gset$bycell <- by_cell_type$cellgroup
-design <- model.matrix(~ bycell + 0, gset) # perhaps we can 
-colnames(design) <- unique(by_cell_type$cellgroup)
-fit_bycell <- lmFit(gset, design)
+gset$bytime <- by_cell_type$time
+design <- model.matrix(~ 0 + bycell + bytime, gset) # perhaps we can 
+# colnames(design) <- c(unique(by_cell_type$cellgroup),unique(gset$bytime))
+fit_bycell_bytime <- lmFit(gset, design)
 # compare breast to all 
 cont.matrix <- makeContrasts(breast-colon, levels=design)
 # fit1 <- contrasts.fit(fit,cont.matrix)
@@ -227,13 +244,18 @@ tT_subset <- subset(tT, select=c("ID","adj.P.Val","P.Value","t","B","logFC","GEN
 
 ```
 
+Depict the design
+```{r}
+library(pheatmap)
+pheatmap(design,show_rownames = FALSE)
+```
 
+Need to read more about how to set up the designs for my own microarray analysis--important as well for the Canadas dataset
 
 ## Calculate B and t statistics for each contrast
 
 ## identify the high-fold change genes that are not significantly differentially-expressed
 
-## 
 
 
 
