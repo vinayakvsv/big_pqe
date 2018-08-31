@@ -3,7 +3,7 @@ title: "Signature extraction from Canadas et al 2018"
 output: html_notebook
 ---
 
-# From GEO2R
+# Import data
 
 ```{r}
 # Version info: R 3.2.3, Biobase 2.30.0, GEOquery 2.40.0, limma 3.26.8
@@ -37,15 +37,53 @@ gset_canadas <- gset_canadas0[[idx]]
 
 ```
 
-This experiment is one-channel
-
+## log2 transform
 ```{r}
+# log2 transform
+exfull <- exprs(gset_canadas)
+gset_canadas_trsf <- gset_canadas
+qxfull <- as.numeric(quantile(exfull, c(0., 0.25, 0.5, 0.75, 0.99, 1.0), na.rm=T))
+LogCfill <- (qxfull[5] > 100) ||
+          (qxfull[6]-qxfull[1] > 50 && qxfull[2] > 0) ||
+          (qxfull[2] > 0 && qxfull[2] < 1 && qxfull[4] > 1 && qxfull[4] < 2)
+if (LogC) { exfull[which(exfull <= 0)] <- NaN
+  exprs(gset_canadas_trsf) <- log2(exfull) }
+
+```
+
+# Differential expression analysis 
+
+The data came from a one-channel microarray
+
+```{r print_description}
 print(gset_canadas$description)
 ```
 
-This is a pretty simple experiment
+## Set design 
+This is a pretty simple experimental setup: two conditions, one H69M and one H69 (both cell lines). We should consider how lung-cancer inflammation responses vary from EOC, Breast, or Colon cancer responses (as in Li et al 2014 and Chiappinelli et al 2015)
 
-```{r}
+```{r set_design}
+gset_canadas_meta <- data.frame(celltype=gset_canadas$`cell line:ch1`)
 
-# gset_canadas_meta <- data.frame
 ```
+
+## Model fit
+
+```{r model_fit}
+
+by_cell_fits <- lapply(unique(by_celltype_time$cellgroup),
+                      function(x) {
+                        x.meta <- subset(by_celltype_time,cellgroup %in% x)
+                        x.gset <- gset_trsf[,x.meta$sample]
+                        x.design <- model.matrix(~ 0 + time, 
+                                     x.meta)
+                        # remove the zero-columns
+                        x.design <- x.design[,colSums(x.design) > 0]
+                        x.fit <- lmFit(x.gset, x.design)
+                        x.fit
+                      })
+names(by_cell_fits) <- unique(by_celltype_time$cellgroup)
+
+
+```
+
