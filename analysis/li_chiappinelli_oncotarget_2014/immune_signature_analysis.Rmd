@@ -310,7 +310,7 @@ by_cell_fits <- lmFit(gset, design_bycell_bytime)
 ## extract tests and genes
 Extract p-values, t-statistics, and B-statistics
 ```{r ebayes_decidetests_topT}
-alpha <- 0.01
+alpha <- 0.05
 # moderated t-statistic
 # fit_bycell_bytime_ebayes <- eBayes(fit = fit_bycell_bytime,
 #                                    proportion = alpha)
@@ -347,7 +347,7 @@ names(by_cell_fits_topTables) <- names(by_cell_fits)
 
 signature <- "interferon"
 
-sig_genes <- lapply(seq_along(along.with = by_cell_fits_decideTests),
+sig_up_genes <- lapply(seq_along(along.with = by_cell_fits_decideTests),
                     function(x) {
                       x.decide <- by_cell_fits_decideTests[[x]]
                       x.tT <- by_cell_fits_topTables[[x]]
@@ -365,26 +365,26 @@ sig_genes <- lapply(seq_along(along.with = by_cell_fits_decideTests),
                       x.tT
                       #x.decide[rownames(x.decide) %in% rownames(!is.na(x.decide)),]
                     })
-names(sig_genes) <- names(by_cell_fits_decideTests)
+names(sig_up_genes) <- names(by_cell_fits_decideTests)
 
 # extract the interferon signature
-sig_genes_in_signature <- lapply(seq_along(along.with = sig_genes),
+sig_up_genes_in_signature <- lapply(seq_along(along.with = sig_up_genes),
                                  function(x) {
-                                   x.tT <- sig_genes[[x]]
+                                   x.tT <- sig_up_genes[[x]]
                                    x.tT_signature <- x.tT[grep(pattern = signature,x = x.tT$GO_ID,ignore.case = TRUE),]
                                    x.tT_signature
                                  })
-names(sig_genes_in_signature) <- names(by_cell_fits_decideTests)
+names(sig_up_genes_in_signature) <- names(by_cell_fits_decideTests)
 
 ```
 
 ## plot
 
 ```{r}
-plot_sig_genes <- lapply(seq_along(along.with = sig_genes),
+plot_sig_up_genes <- lapply(seq_along(along.with = sig_up_genes),
                          function(x) {
                            x.tT <- by_cell_fits_topTables[[x]]
-                           x.tT.sig <- sig_genes[[x]]
+                           x.tT.sig <- sig_up_genes[[x]]
                            # all points
                            # ylim_padj <- min(x.tT.sig$"adj.P.Val",na.rm = TRUE)
                            # print(-log10(ylim_padj))
@@ -406,7 +406,7 @@ plot_sig_genes <- lapply(seq_along(along.with = sig_genes),
                                 pch=20,
                                 col="grey")
                            # sig genes in signature
-                           x.tT.signature <- sig_genes_in_signature[[x]]
+                           x.tT.signature <- sig_up_genes_in_signature[[x]]
                            points(x.tT.signature$AveExpr,
                                 -log10(x.tT.signature$adj.P.Val),
                                 pch=20,
@@ -414,7 +414,14 @@ plot_sig_genes <- lapply(seq_along(along.with = sig_genes),
                          })
 ```
 
-Perhaps we can isolate all of the "significant" genes and re-do the GSEA?
+The putative "interferon signature" is 
+
+```{r test_ifn_signature}
+test_ifn_signature <- unique(unlist(lapply(sig_up_genes_in_signature,function(x) {unique(x$GENE_SYMBOL)})))
+print(test_ifn_signature)
+```
+
+Perhaps we can re-run GSEA on all of the "significant" genes?
 
 Decide tests
 ```{}
