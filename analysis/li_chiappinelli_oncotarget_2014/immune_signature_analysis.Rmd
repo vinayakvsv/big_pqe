@@ -301,11 +301,64 @@ alpha <- 0.01
 #                                    proportion = alpha)
 by_cell_fits_ebayes <- lapply(by_cell_fits,
                               function(x) {
-                                eBayes(fit = x,proportion = alpha)
+                                eBayes(fit = x,
+                                       proportion = alpha)
                               })
-
 names(by_cell_fits_ebayes) <- names(by_cell_fits)
-# print(summary(fit_bytime_ebayes))
+
+# decide tests
+by_cell_fits_decideTests <- lapply(by_cell_fits_ebayes,
+                              function(x) {
+                                decideTests(object = x,
+                                            method = "global",
+                                            adjust.method = "fdr",
+                                            p.value = alpha)
+                              })
+names(by_cell_fits_decideTests) <- names(by_cell_fits)
+
+# decide tests
+by_cell_fits_topTables <- lapply(by_cell_fits_ebayes,
+                              function(x) {
+                                topTable(fit = x,
+                                         adjust = "fdr",
+                                         sort.by = "B",
+                                         number = nrow(x))
+                              })
+names(by_cell_fits_topTables) <- names(by_cell_fits)
+
+# isolate the genes that undergo significant changes at the time points described
+# fortunately, the authors also included the GO terms of which each gene is a part. Isolate the interferon sets for each one
+
+signature <- "interferon"
+
+sig_genes <- lapply(seq_along(along.with = by_cell_fits_decideTests),
+                    function(x) {
+                      x.decide <- by_cell_fits_decideTests[[x]]
+                      x.tT <- by_cell_fits_topTables[[x]]
+                      # remove the NAs
+                      x.decide.sig <- apply(X = x.decide,MARGIN = 1,
+                                            function(x) {
+                                              # return TRUE if at least one 1 is in the row and if NA's do not dominate the row
+                                              length(x[x == 1]) >= 1 & length(x[is.na(x)]) < length(x)
+                                            })
+                      x.decide_sig <- x.decide[x.decide.sig,]
+                      # extract the entries that are significant at a particular time point
+                      # also, extract based on the signature
+                      x.tT <- x.tT[rownames(x.tT) %in% rownames(x.decide_sig),]
+                      # x.tT_signature <- x.tT[grep(pattern = signature,x = x.tT$GO_ID,ignore.case = TRUE),]
+                      x.tT
+                      #x.decide[rownames(x.decide) %in% rownames(!is.na(x.decide)),]
+                    })
+names(sig_genes) <- names(by_cell_fits_decideTests)
+
+sig_genes_in_signature <- lapply(seq_along(along.with = sig_genes),
+                                 function(x) {
+                                   x.tT <- sig_genes[[x]]
+                                   x.tT_signature <- x.tT[grep(pattern = signature,x = x.tT$GO_ID,ignore.case = TRUE),]
+                                   x.tT_signature
+                                 })
+names(sig_genes_in_signature) <- names(by_cell_fits_decideTests)
+
 ```
 
 Decide tests
@@ -351,5 +404,6 @@ Need to read more about how to set up the designs for my own microarray analysis
 ## identify the high-fold change genes that are not significantly differentially-expressed
 
 
+Do I also have to do the demethylation analysis?
 
 
