@@ -120,6 +120,9 @@ tT <- topTable(fit2, adjust="fdr", sort.by="B", number=250)
 # allT <- topTable(fit2, adjust="none", sort.by="B",number = nrow(fit2))
 tT <- topTable(fit2, adjust="fdr", sort.by="B",number = nrow(fit2))
 
+# write results
+write.table(x = tT,file = paste(getwd(),"topTable.txt",sep = "/"),quote = FALSE,sep = "\t",row.names = TRUE,col.names = TRUE)
+
 # allT_subset <- subset(allT, select=c("ID","adj.P.Val","P.Value","t","B","logFC","GENE_SYMBOL","GENE_NAME"))
 tT_subset <- subset(tT, select=c("ID","adj.P.Val","P.Value","t","B","logFC","GENE_SYMBOL","GENE_NAME"))
 ```
@@ -186,4 +189,8 @@ I would like to...
 1. Compare the Aza-treated cell lines with non-treated cell lines across the . Specifically, find the genes that are not differentially expressed amongst the Aza-treated cell lines but are all differentially expressed with respect to their untreated counterparts. Keep the "up" and "down" genes separately
 2. For each cell line studied, find the genes that go up 
 3. Determine whether this signature is enriched for immune genes (use GSVA for this purpose)
+
+# Compare breast cancer cell line with all others
+
+
 
