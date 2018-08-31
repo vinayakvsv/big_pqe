@@ -199,6 +199,20 @@ See Li et al Oncotarget 2014 Table 1 in “Interferon” for “Common to all 3 
 
 To define the Chiappinelli signature (and answer question #2 for Chiappinelli), we need to isolate AIMs. From Li et al Oncotarget: "AIMs were defined by intersection of all genes from the enriched GSEA gene sets with over 2 fold upregulated genes after AZA treatment for any cell line, any time point." So, for the analysis, perform every time-point contrast for each cell line and identify the genes. 
 
+## log2 transform
+```{r}
+# log2 transform
+exfull <- exprs(gset)
+gset_trsf <- gset
+qxfull <- as.numeric(quantile(exfull, c(0., 0.25, 0.5, 0.75, 0.99, 1.0), na.rm=T))
+LogCfill <- (qxfull[5] > 100) ||
+          (qxfull[6]-qxfull[1] > 50 && qxfull[2] > 0) ||
+          (qxfull[2] > 0 && qxfull[2] < 1 && qxfull[4] > 1 && qxfull[4] < 2)
+if (LogC) { exfull[which(exfull <= 0)] <- NaN
+  exprs(gset_trsf) <- log2(exfull) }
+
+```
+
 ## set up design matrix
 
 Get the metadata for the study
@@ -216,7 +230,6 @@ Note that every sample consists of two channels: one corresponding to the contro
 We will compare the following: 
 1. Each of the timepoints -- we want those genes that increase in expression 2-fold for any time point
 2. Each type of tissue
-2. Each cell line--we want to get the genes that differ the least and are elevated in Aza
 
 ```{r set_by_time}
 timepoint <- sapply(X = unique(gset_meta$time),
@@ -264,7 +277,7 @@ We will then perform GSEA on this set of "common genes" and recover our putative
 by_cell_fits <- lapply(unique(by_celltype_time$cellgroup),
                       function(x) {
                         x.meta <- subset(by_celltype_time,cellgroup %in% x)
-                        x.gset <- gset[,x.meta$sample]
+                        x.gset <- gset_trsf[,x.meta$sample]
                         x.design <- model.matrix(~ 0 + time, 
                                      x.meta)
                         # remove the zero-columns
@@ -288,11 +301,13 @@ design_bycell_bytime <- model.matrix(~ 0 + time,
 # colnames(design) <- c(unique(by_cell_type$cellgroup),unique(gset$bytime))
 ```
 
+## fit model 
 Fit model
 ```{}
 by_cell_fits <- lmFit(gset, design_bycell_bytime)
 ```
 
+## extract tests and genes
 Extract p-values, t-statistics, and B-statistics
 ```{r ebayes_decidetests_topT}
 alpha <- 0.01
@@ -322,7 +337,8 @@ by_cell_fits_topTables <- lapply(by_cell_fits_ebayes,
                                 topTable(fit = x,
                                          adjust = "fdr",
                                          sort.by = "B",
-                                         number = nrow(x))
+                                         number = nrow(x),
+                                         p.value = alpha)
                               })
 names(by_cell_fits_topTables) <- names(by_cell_fits)
 
@@ -351,6 +367,7 @@ sig_genes <- lapply(seq_along(along.with = by_cell_fits_decideTests),
                     })
 names(sig_genes) <- names(by_cell_fits_decideTests)
 
+# extract the interferon signature
 sig_genes_in_signature <- lapply(seq_along(along.with = sig_genes),
                                  function(x) {
                                    x.tT <- sig_genes[[x]]
@@ -361,8 +378,46 @@ names(sig_genes_in_signature) <- names(by_cell_fits_decideTests)
 
 ```
 
-Decide tests
+## plot
+
 ```{r}
+plot_sig_genes <- lapply(seq_along(along.with = sig_genes),
+                         function(x) {
+                           x.tT <- by_cell_fits_topTables[[x]]
+                           x.tT.sig <- sig_genes[[x]]
+                           # all points
+                           # ylim_padj <- min(x.tT.sig$"adj.P.Val",na.rm = TRUE)
+                           # print(-log10(ylim_padj))
+                           plot(x.tT$AveExpr,
+                                -log10(x.tT$adj.P.Val),
+                                pch=20,
+                                main=names(sig_genes)[x],
+                                xlab=c("Average log2 expression"),
+                                ylab=c("-log10(adj p value)"),
+                                xlim=c(-5,5),
+                                ylim=c(0,100))
+                           abline(h = -log10(alpha),
+                                  lty=2,
+                                  col="red",
+                                  lwd=2)
+                           # sig genes
+                           points(x.tT.sig$AveExpr,
+                                -log10(x.tT.sig$adj.P.Val),
+                                pch=20,
+                                col="grey")
+                           # sig genes in signature
+                           x.tT.signature <- sig_genes_in_signature[[x]]
+                           points(x.tT.signature$AveExpr,
+                                -log10(x.tT.signature$adj.P.Val),
+                                pch=20,
+                                col="pink")
+                         })
+```
+
+Perhaps we can isolate all of the "significant" genes and re-do the GSEA?
+
+Decide tests
+```{}
 # decideTests will determine which genes are significantly expressed (up or down) for each contrast that we tested. 
 fit_bycell_bytime_decideTests <- decideTests(object = fit_bycell_bytime_ebayes,method = "global",adjust.method = "fdr",p.value = alpha)
 # this gives us the top table, and we can select specific genes based on the output from decideTests
@@ -372,7 +427,7 @@ print(summary(fit_bycell_bytime_decideTests))
 # get the genes that 
 ```
 
-```{r}
+```{}
 # compare breast to all 
 cont.matrix <- makeContrasts(breast-colon, levels=design)
 # fit1 <- contrasts.fit(fit,cont.matrix)
@@ -392,7 +447,7 @@ tT_subset <- subset(tT, select=c("ID","adj.P.Val","P.Value","t","B","logFC","GEN
 ```
 
 Depict the design
-```{r}
+```{}
 library(pheatmap)
 pheatmap(design,show_rownames = FALSE)
 ```
