@@ -190,7 +190,15 @@ I would like to...
 2. For each cell line studied, find the genes that go up 
 3. Determine whether this signature is enriched for immune genes (use GSVA for this purpose)
 
-# Compare breast cancer cell line with all others
+# Compare the three cell lines
+
+## set up design matrix
+
+## Calculate B and t statistics for each contrast
+
+## identify the high-fold change genes that are not significantly differentially-expressed
+
+## 
 
 
 
