@@ -59,9 +59,18 @@ rownames(gset_meta) <- gset$geo_accession
 
 # Set a comparison
 
-Note that every sample consists of two channels: one corresponding to the control (untreated) and one corresponding to the AZA. So, every sample will have a set of genes that differ in the treatment versus a control. We want to examine 
+Note that every sample consists of two channels: one corresponding to the control (untreated) and one corresponding to the AZA. So, every sample will have a set of genes that differ in the treatment versus a control. For each gene, the colors for one of the two channel indicates whether the gene has a raised expression level in the treatment or control. We want to examine whether the genes that differ for one set of channels corresponding to a condition are different as the genesthat differ for another set of channels corresponding to a different condition.
 
-```{r get_aza}
+We will compare the following: 
+1. Each of the timepoints -- we want those that remain high even 14 days after induction
+2. Each type of tissue
+3. Each cell line--we want to get the genes that differ the least and are elevated in Aza
+
+```{r set_by_cell_line}
+
+is_breast <- which(grepl(pattern = "breast",x = gset_meta$cell_type))
+is_ovarian <- which(grepl(pattern = "ovarian",x = gset_meta$cell_type))
+is_colon <- which(grepl(pattern = "colon",x = gset_meta$cell_type))
 
 ```
 
@@ -101,13 +110,29 @@ fl <- as.factor(sml)
 gset_reduced$description <- fl
 design <- model.matrix(~ description + 0, gset_reduced) # perhaps we can 
 colnames(design) <- levels(fl)
-fit <- lmFit(gset, design)
+fit <- lmFit(gset_reduced, design)
 cont.matrix <- makeContrasts(G1-G0, levels=design)
+# fit1 <- contrasts.fit(fit,cont.matrix)
 fit2 <- contrasts.fit(fit, cont.matrix)
+# fit1 <- eBayes(fit1, 1)
 fit2 <- eBayes(fit2, 0.01)
 tT <- topTable(fit2, adjust="fdr", sort.by="B", number=250)
+# allT <- topTable(fit2, adjust="none", sort.by="B",number = nrow(fit2))
+tT <- topTable(fit2, adjust="fdr", sort.by="B",number = nrow(fit2))
 
-# tT <- subset(tT, select=c("ID","adj.P.Val","P.Value","t","B","logFC","GENE_SYMBOL","GENE_NAME"))
+allT_subset <- subset(allT, select=c("ID","adj.P.Val","P.Value","t","B","logFC","GENE_SYMBOL","GENE_NAME"))
+tT_subset <- subset(tT, select=c("ID","adj.P.Val","P.Value","t","B","logFC","GENE_SYMBOL","GENE_NAME"))
+```
+
+Volcano plot of the results
+```{r volc_plot}
+alpha <- 0.01
+plot(tT_subset$logFC,
+     -log10(tT_subset$adj.P.Val),
+     xlab=c("logFC"),
+     ylab="adj.P.val",
+     pch=20,
+     col=as.factor(tT_subset$adj.P.Val <= alpha))
 ```
 
 ```{r boxplot}
@@ -154,13 +179,11 @@ legend("topleft", labels, fill=palette(), bty="n")
 ```
 
 
-I should also write out the metadata for this data and set the different conditions I want to test
-
 ## Goals of this analysis 
 
 I would like to...
 
-1. Compare the Aza-treated cell lines with non-treated cell lines. Specifically, find the genes that are not differentially expressed amongst the Aza-treated cell lines but are all differentially expressed with respect to their untreated counterparts. Keep the "up" and "down" genes separately
+1. Compare the Aza-treated cell lines with non-treated cell lines across the . Specifically, find the genes that are not differentially expressed amongst the Aza-treated cell lines but are all differentially expressed with respect to their untreated counterparts. Keep the "up" and "down" genes separately
 2. For each cell line studied, find the genes that go up 
 3. Determine whether this signature is enriched for immune genes (use GSVA for this purpose)
 
