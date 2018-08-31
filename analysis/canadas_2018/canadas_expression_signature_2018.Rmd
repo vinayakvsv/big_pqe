@@ -3,6 +3,16 @@ title: "Signature extraction from Canadas et al 2018"
 output: html_notebook
 ---
 
+# Setup
+```{r setup}
+# install.packages("readxl")
+library(readxl)
+source("https://bioconductor.org/biocLite.R")
+biocLite("Biobase")
+biocLite("GEOquery")
+biocLite("limma")
+```
+
 # Import data
 
 ```{r}
@@ -99,7 +109,9 @@ exprs(gset_canadas_trsf) <- log2(exfull)
 lmfit_canadas <- lmFit(gset_canadas_trsf, design_canadas)
 ```
 
-Extract necessary statistics
+## DEX genes
+
+Extract necessary statistics and the differentially-expressed genes
 ```{r extract_stats}
 alpha <- 0.05
 log2fc_lim <- 0.5
@@ -136,13 +148,103 @@ plot(tT_canadas_subset$logFC,
      -log10(tT_canadas_subset$adj.P.Val),
      xlab=c("log2FC (H69M-H69)"),
      ylab="adj.P.val",
-     pch=20,
-     col=as.factor(tT_canadas_subset$adj.P.Val <= alpha & tT_canadas_subset$logFC >= log2fc_lim))
+     pch=20)
+tT_canadas_sig_up_h69m <- subset(tT_canadas_subset,adj.P.Val <= alpha & logFC > log2fc_lim)
+tT_canadas_sig_down_h69m <- subset(tT_canadas_subset,adj.P.Val <= alpha & logFC < -log2fc_lim)
+points(tT_canadas_sig_up_h69m$logFC,
+       -log10(tT_canadas_sig_up_h69m$adj.P.Val),
+       pch=20,
+       col="red")
+     #col=as.factor(tT_canadas_subset$adj.P.Val <= alpha & tT_canadas_subset$logFC >= log2fc_lim))
 abline(h = -log10(alpha),
        v = log2fc_lim,
        lty=2,
        col="red")
 
-tT_canadas_sig <- subset(tT_canadas_subset,adj.P.Val <= alpha & logFC >= log2fc_lim)
 # IFNB has a fold-change in expression of 0.2
 ```
+
+## Intersect the Canadas set 
+
+Canadas et al focused on the 452 most differentially-expressed genes in their analysis (which they obtained from an earlier paper, Canadas et al Clin Cancer Res 2014). The genes are provided in Supplementary Dataset 1, though the exact method to reproduce them is not given.
+
+```{r import_supp_dat_1}
+
+read_excel_allsheets <- function(filename, tibble = FALSE) {
+  # from https://stackoverflow.com/questions/12945687/read-all-worksheets-in-an-excel-workbook-into-an-r-list-with-data-frames 
+    sheets <- excel_sheets(filename)
+    x <- lapply(sheets, function(X) readxl::read_excel(filename, sheet = X))
+    if(!tibble) x <- lapply(x, as.data.frame)
+    names(x) <- sheets
+    x
+}
+
+canadas_topgenes_sem <- read_excel_allsheets(paste(canadas_data,"41591_2018_116_MOESM3_ESM.xlsx",sep = "/"))
+
+canadas_topgenes_sem_up <- canadas_topgenes_sem$`S2_up_down genes H69M vs H69`$`H69M-UP`
+canadas_topgenes_sem_down <- canadas_topgenes_sem$`S2_up_down genes H69M vs H69`$`H69M-DOWN`
+
+```
+
+Replot the volcano but with the specific genes marked
+```{r}
+plot(tT_canadas_subset$logFC,
+     -log10(tT_canadas_subset$adj.P.Val),
+     xlab=c("log2FC (H69M-H69)"),
+     ylab="adj.P.val",
+     pch=20)
+# tT_canadas_sig_up_h69m <- subset(tT_canadas_subset,adj.P.Val <= alpha & logFC > log2fc_lim)
+# tT_canadas_sig_down_h69m <- subset(tT_canadas_subset,adj.P.Val <= alpha & logFC < -log2fc_lim)
+points(tT_canadas_sig_up_h69m$logFC,
+       -log10(tT_canadas_sig_up_h69m$adj.P.Val),
+       pch=20,
+       col="red")
+     #col=as.factor(tT_canadas_subset$adj.P.Val <= alpha & tT_canadas_subset$logFC >= log2fc_lim))
+
+tT_canadas_sig_up_h69m_in_sem <- subset(tT_canadas_sig_up_h69m,GENE_SYMBOL %in% canadas_topgenes_sem_up)
+tT_canadas_sig_in_sem <- subset(tT_canadas_subset,GENE_SYMBOL %in% canadas_topgenes_sem_up | GENE_SYMBOL %in% canadas_topgenes_sem_down)
+
+points(tT_canadas_sig_in_sem$logFC,
+       -log10(tT_canadas_sig_in_sem$adj.P.Val),
+       pch=20,
+       col="orange")
+
+abline(h = -log10(alpha),
+       v = log2fc_lim,
+       lty=2,
+       col="red")
+
+```
+
+Heatmap:
+
+```{r hmap}
+
+# gene annotation
+gene_annot <- data.frame(sig_up_h69m = as.factor(tT_canadas_subset$GENE_SYMBOL %in% tT_canadas_sig_up_h69m$GENE_SYMBOL),
+                         sig_up_h69m_and_sem = as.factor(tT_canadas_subset$GENE_SYMBOL %in% tT_canadas_sig_up_h69m_in_sem$GENE_SYMBOL),
+                         sig_up_sem = as.factor(tT_canadas_subset$GENE_SYMBOL %in% tT_canadas_sig_in_sem$GENE_SYMBOL))
+gene_annot <- data.frame(sig_up_h69m_and_sem = as.factor(tT_canadas_subset$GENE_SYMBOL %in% tT_canadas_sig_up_h69m_in_sem$GENE_SYMBOL),
+                         sig_up_sem = as.factor(tT_canadas_subset$GENE_SYMBOL %in% tT_canadas_sig_in_sem$GENE_SYMBOL))
+
+rownames(gene_annot) <- tT_canadas_subset$ID
+
+# sample annotation
+sample_annot <- gset_canadas_meta
+rownames(sample_annot) <- colnames(exprs(gset_canadas_trsf))
+
+# pare down the expression matrix to a desired subset
+exp_full <- exprs(gset_canadas_trsf)
+gset_canadas_trsf_hmap_sig <- exp_full[rownames(exp_full) %in% rownames(tT_canadas_sig_up_h69m),]
+gene_annot_sig <- gene_annot[rownames(gene_annot) %in% rownames(gset_canadas_trsf_hmap_sig),]
+
+# heatmap
+pheatmap(gset_canadas_trsf_hmap_sig,
+         annotation_col = sample_annot,
+         annotation_row = gene_annot,
+         show_rownames = FALSE,
+         show_colnames = FALSE)
+```
+
+Fair concordance between my analysis and theirs. 
+
