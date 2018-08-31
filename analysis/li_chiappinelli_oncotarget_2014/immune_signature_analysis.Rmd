@@ -226,7 +226,7 @@ if (LogCfill) {
 gset_trsf_with_NA <- apply(X = gset_trsf,
                            MARGIN = 1,
                            function(x) {
-                             length(x[is.na(x)]) > 1
+                             #length(x[is.na(x)]) > 10
                              length(x[is.na(x)]) == length(x)
                              })
 gset_trsf_with_NA <- gset_trsf_with_NA[gset_trsf_with_NA]
@@ -492,18 +492,21 @@ rownames(colannot) <- rownames(gset_meta)
 pheatmap(mat = gset_log2exp_sig_ifnsignature, 
          show_colnames = FALSE,
          labels_row = gset_log2exp_sig_ifnsignature_genename,
-         annotation_col = colannot,fontsize = 7.5)
+         annotation_col = colannot,fontsize = 7.5,
+         main="Interferon signature genes (log2(fluorescence)")
 
 pheatmap(mat = gset_log2exp_sig, 
          show_colnames = FALSE,
          show_rownames = FALSE,
-         annotation_col = colannot,fontsize = 7.5)
+         annotation_col = colannot,fontsize = 7.5,
+         main="All significantly-expressed genes (log2(fluorescence)")
 
 ```
 
 Perhaps we can re-run GSEA on all of the "significant" genes?
 
 
+# Scraps
 
 Decide tests
 ```{}
@@ -540,12 +543,6 @@ Depict the design
 library(pheatmap)
 pheatmap(design,show_rownames = FALSE)
 ```
-
-Need to read more about how to set up the designs for my own microarray analysis--important as well for the Canadas dataset
-
-## Calculate B and t statistics for each contrast
-
-## identify the high-fold change genes that are not significantly differentially-expressed
 
 
 Do I also have to do the demethylation analysis?

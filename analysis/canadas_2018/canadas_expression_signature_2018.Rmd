@@ -24,7 +24,7 @@ library(GEOquery)
 # load series and platform data from GEO
 
 canadas_data <- paste(getwd(),"../..","datasets","canadas_2018/",sep = "/")
-gset_canadas0 <- getGEO("GSE45120", GSEMatrix =TRUE, getGPL=FALSE,destdir = canadas_data)
+gset_canadas0 <- getGEO("GSE45120",destdir = canadas_data)
 if (length(gset_canadas0) > 1) idx <- grep("GPL6244", attr(gset, "names")) else idx <- 1
 gset_canadas <- gset_canadas0[[idx]]
 
@@ -41,13 +41,35 @@ gset_canadas <- gset_canadas0[[idx]]
 ```{r}
 # log2 transform
 exfull <- exprs(gset_canadas)
+# remove NAs
 gset_canadas_trsf <- gset_canadas
-qxfull <- as.numeric(quantile(exfull, c(0., 0.25, 0.5, 0.75, 0.99, 1.0), na.rm=T))
+qxfull <- as.numeric(quantile(exfull, c(0., 0.25, 0.5, 0.75, 0.99,1.0), na.rm=T))
 LogCfill <- (qxfull[5] > 100) ||
           (qxfull[6]-qxfull[1] > 50 && qxfull[2] > 0) ||
           (qxfull[2] > 0 && qxfull[2] < 1 && qxfull[4] > 1 && qxfull[4] < 2)
-if (LogC) { exfull[which(exfull <= 0)] <- NaN
-  exprs(gset_canadas_trsf) <- log2(exfull) }
+# invoke this if log2 normalization isn't already in effect
+if (LogCfill) { 
+  print("log normalizing")
+  exfull[which(exfull <= 0)] <- NaN
+  exprs(gset_canadas_trsf) <- log2(exfull) 
+  } else if (qxfull[6] > 100) {
+  # if the qxfull[6] full is extremely high...
+    print("adjusting values")
+    # remove extremely high values; since these are log2 fold changes, we don't want anything insanely high
+    exfull[which(exfull >= 10)] <- NA
+    # also remove extremely low values
+    exfull[which(exfull < -10)] <- NA
+    exprs(gset_canadas_trsf) <- exfull
+}
+
+# remove all rows that are all NA's
+gset_canadas_trsf_with_NA <- apply(X = gset_canadas_trsf,
+                           MARGIN = 1,
+                           function(x) {
+                             #length(x[is.na(x)]) > 1
+                             length(x[is.na(x)]) == length(x)
+                             })
+gset_canadas_trsf_with_NA <- gset_canadas_trsf_with_NA[gset_canadas_trsf_with_NA]
 
 ```
 
@@ -64,26 +86,63 @@ This is a pretty simple experimental setup: two conditions, one H69M and one H69
 
 ```{r set_design}
 gset_canadas_meta <- data.frame(celltype=gset_canadas$`cell line:ch1`)
-
+gset_canadas_trsf$description <- gset_canadas_meta$celltype
+design_canadas <- model.matrix(~ 0 + description, gset_canadas_trsf)
+colnames(design_canadas) <- levels(gset_canadas_meta$celltype)
 ```
 
 ## Model fit
 
-```{r model_fit}
+We will now fit the model. This doesn't appear to be log2-normalized, so we will do so here
+```{r}
+exprs(gset_canadas_trsf) <- log2(exfull)
+lmfit_canadas <- lmFit(gset_canadas_trsf, design_canadas)
+```
 
-by_cell_fits <- lapply(unique(by_celltype_time$cellgroup),
-                      function(x) {
-                        x.meta <- subset(by_celltype_time,cellgroup %in% x)
-                        x.gset <- gset_trsf[,x.meta$sample]
-                        x.design <- model.matrix(~ 0 + time, 
-                                     x.meta)
-                        # remove the zero-columns
-                        x.design <- x.design[,colSums(x.design) > 0]
-                        x.fit <- lmFit(x.gset, x.design)
-                        x.fit
-                      })
-names(by_cell_fits) <- unique(by_celltype_time$cellgroup)
+Extract necessary statistics
+```{r extract_stats}
+alpha <- 0.05
+log2fc_lim <- 0.5
+canadas_cont_matrix <- makeContrasts(H69M-H69, levels=design_canadas)
+lmfit_canadas_fit1 <- contrasts.fit(lmfit_canadas, canadas_cont_matrix)
+lmfit_canadas_ebayes <- eBayes(fit = lmfit_canadas_fit1,proportion = alpha)
+tT_canadas <- topTable(lmfit_canadas_ebayes, 
+                       adjust="fdr", 
+                       sort.by="B", number=nrow(gset_canadas_trsf))
 
+# now for the frustrating business of extracting the names of different genes
+tT_canadas_gene_names <- sapply(tT_canadas$gene_assignment,
+                                function(x) {
+                                  a <- unlist(strsplit(x = as.character(x),split = " // ",fixed = TRUE))
+                                  a[2]
+                                })
+tT_canadas$GENE_SYMBOL <- as.character(tT_canadas_gene_names)
+
+tT_canadas_subset <- subset(tT_canadas, select=c("ID","adj.P.Val","P.Value","t","B","logFC","GENE_SYMBOL","AveExpr"))
+
+# # fit1 <- contrasts.fit(fit,cont.matrix)
+# fit2 <- contrasts.fit(fit_bycell, cont.matrix)
+# # fit1 <- eBayes(fit1, 1)
+# fit2 <- eBayes(fit2, 0.01)
+# tT <- topTable(fit2, adjust="fdr", sort.by="B", number=250)
+# # allT <- topTable(fit2, adjust="none", sort.by="B",number = nrow(fit2))
+# tT <- topTable(fit2, adjust="fdr", sort.by="B",number = nrow(fit2))
 
 ```
 
+Volcano plot of the results
+```{r volc_plot}
+plot(tT_canadas_subset$logFC,
+     -log10(tT_canadas_subset$adj.P.Val),
+     xlab=c("log2FC (H69M-H69)"),
+     ylab="adj.P.val",
+     pch=20,
+     col=as.factor(tT_canadas_subset$adj.P.Val <= alpha & tT_canadas_subset$logFC >= log2fc_lim))
+abline(h = -log10(alpha),
+       v = log2fc_lim,
+       lty=2,
+       col="red")
+
+tT_canadas_sig <- subset(tT_canadas_subset,adj.P.Val <= alpha & logFC >= log2fc_lim)
+# IFNB has a fold-change in expression of 0.2
+```
