@@ -23,16 +23,23 @@ library(GEOquery)
 
 # load series and platform data from GEO
 
-canadas_data <- paste(getwd(),,"datasets","canadas_2018/",sep = "/")
-gset <- getGEO("GSE45120", GSEMatrix =TRUE, getGPL=FALSE,destdir = canadas_data)
-if (length(gset) > 1) idx <- grep("GPL6244", attr(gset, "names")) else idx <- 1
-gset <- gset[[idx]]
+canadas_data <- paste(getwd(),"../..","datasets","canadas_2018/",sep = "/")
+gset_canadas0 <- getGEO("GSE45120", GSEMatrix =TRUE, getGPL=FALSE,destdir = canadas_data)
+if (length(gset_canadas0) > 1) idx <- grep("GPL6244", attr(gset, "names")) else idx <- 1
+gset_canadas <- gset_canadas0[[idx]]
 
-# set parameters and draw the plot
-palette(c("#dfeaf4","#f4dfdf", "#AABBCC"))
-dev.new(width=4+dim(gset)[[2]]/5, height=6)
-par(mar=c(2+round(max(nchar(sampleNames(gset)))/2),4,2,1))
-title <- paste ("GSE45120", '/', annotation(gset), " selected samples", sep ='')
-boxplot(exprs(gset), boxwex=0.7, notch=T, main=title, outline=FALSE, las=2)
+# # set parameters and draw the plot
+# palette(c("#dfeaf4","#f4dfdf", "#AABBCC"))
+# dev.new(width=4+dim(gset)[[2]]/5, height=6)
+# par(mar=c(2+round(max(nchar(sampleNames(gset)))/2),4,2,1))
+# title <- paste ("GSE45120", '/', annotation(gset), " selected samples", sep ='')
+# boxplot(exprs(gset), boxwex=0.7, notch=T, main=title, outline=FALSE, las=2)
 
 ```
+
+This experiment is one-channel
+
+```{r}
+```
+
+

@@ -29,7 +29,7 @@ library(limma)
 
 ```{r downloadgeo}
 # load series and platform data from GEO
-li_et_al_2014_data <- paste(getwd(),,"datasets","li_chiappinelli_oncotarget_2014/",sep = "/")
+li_et_al_2014_data <- paste(getwd(),"../..","datasets","li_chiappinelli_oncotarget_2014/",sep = "/")
 gset0 <- getGEO("GSE57341",destdir = li_et_al_2014_data)
 if (length(gset0) > 1) {
   idx <- grep("GPL4133", attr(gset, "names")) 
@@ -161,16 +161,47 @@ I would like to...
 
 # Compare the three cell lines
 
-See Li et al Oncotarget 2014 Table 1 in “Interferon” for “Common to all 3 cancers” 
+See Li et al Oncotarget 2014 Table 1 in “Interferon” for “Common to all 3 cancers” . The gene common to all three cancers in the interferon response where:
 
-To answer question #2 for Chiappinelli, look at Li’s analysis and identify the same signatures (if you must reproduce). You should be doing differential expression analysis across the time points for each specific cancer and then finding which genes are consistently upregulated when applying the AZA treatment. 
+1. B2M (part of MHCI)
+2. CD44
+3. GBP1
+4. HLA-B
+5. HLA-C
+6. ICAM-1
+7. IRF7
+8. IRF9
+9. MT2A
+10. OAS1
+11. OAS2
+12. OAS3
+13. OASL
+14. STAT1
+15. STAT1
+16. EGR1
+17. IFI27
+18. IFI6
+19. IFIT1
+20. IFIT3
+21. IFITM1
+22. ISG15
+23. ISG20
+24. MX1
+25. MX1
+26. PSMB8
+27. USP18
+28. XAF1
+29. DDX58
+30. HRC5
+31. UBA7
+32. IFIH1
+33. TNFA1P3
+
+To define the Chiappinelli signature (and answer question #2 for Chiappinelli), we need to isolate AIMs. From Li et al Oncotarget: "AIMs were defined by intersection of all genes from the enriched GSEA gene sets with over 2 fold upregulated genes after AZA treatment for any cell line, any time point." So, for the analysis, perform every time-point contrast for each cell line and identify the genes. 
 
 ## set up design matrix
 
-Is there some way we can import the metadata used for this study?
-
-Yes
-
+Get the metadata for the study
 ```{r set_design}
 gset_meta <- data.frame(cell_line = gset$`cell line:ch1`,
                         cell_type = gset$`cell type:ch2`,
@@ -183,9 +214,9 @@ rownames(gset_meta) <- gset$geo_accession
 Note that every sample consists of two channels: one corresponding to the control (untreated) and one corresponding to the AZA. So, every sample will have a set of genes that differ in the treatment versus a control. For each gene, the colors for one of the two channel indicates whether the gene has a raised expression level in the treatment or control. We want to examine whether the genes that differ for one set of channels corresponding to a condition are different as the genesthat differ for another set of channels corresponding to a different condition.
 
 We will compare the following: 
-1. Each of the timepoints -- we want those that remain high even 14 days after induction
+1. Each of the timepoints -- we want those genes that increase in expression 2-fold for any time point
 2. Each type of tissue
-3. Each cell line--we want to get the genes that differ the least and are elevated in Aza
+2. Each cell line--we want to get the genes that differ the least and are elevated in Aza
 
 ```{r set_by_time}
 timepoint <- sapply(X = unique(gset_meta$time),
@@ -198,7 +229,7 @@ timepoint <- sort(unlist(timepoint))
 #names(timepoint) <- unique(gset_meta$time)
 ```
 
-```{r set_by_cell_line}
+```{r set_by_cell_type}
 
 is_breast <- which(grepl(pattern = "breast",x = gset_meta$cell_type))
 breast_group <- rep('breast',length(is_breast))
@@ -209,23 +240,86 @@ ovarian_group <- rep('ovarian',length(is_ovarian))
 is_colon <- which(grepl(pattern = "colon",x = gset_meta$cell_type))
 colon_group <- rep('colon',length(is_colon))
 
-by_cell_type <- data.frame(sample = c(is_breast,is_ovarian,is_colon),
-                           cellgroup = c(breast_group,ovarian_group,colon_group))
-by_cell_type <- by_cell_type[order(by_cell_type$sample),]
-by_cell_type$time <- names(timepoint)
+by_celltype_time <- data.frame(sample = c(is_breast,is_ovarian,is_colon), 
+                               cellgroup = as.factor(c(breast_group,ovarian_group,colon_group)))
+
+# by_celltype_time <- data.frame(cellgroup = as.factor(c(breast_group,ovarian_group,colon_group)))
+
+by_celltype_time <- by_celltype_time[order(by_celltype_time$sample),]
+by_celltype_time$time <- as.factor(names(timepoint))
+# by_celltype_time <- subset(by_celltype_time,select=c("cellgroup","time"))
 
 # convert these into three groups and, when doing the comparison, see 13.3 in http://www.bioconductor.org/packages/devel/bioc/vignettes/limma/inst/doc/usersguide.pdf 
 
 
 ```
 
-Set the group description and perform analysis
-```{r}
-gset$bycell <- by_cell_type$cellgroup
-gset$bytime <- by_cell_type$time
-design <- model.matrix(~ 0 + bycell + bytime, gset) # perhaps we can 
+Set the group design. For this analysis, we will do the following:
+1. Isolate the samples corresponding to each tissue type
+2. For each tissue type, find the genes that go up significantly at any time point by at least 2-fold (log2FC = 1)
+3. Identify the genes that are common to all of the tissue types. 
+We will then perform GSEA on this set of "common genes" and recover our putative AIM signature
+
+```{r set_designs_and_fit}
+by_cell_fits <- lapply(unique(by_celltype_time$cellgroup),
+                      function(x) {
+                        x.meta <- subset(by_celltype_time,cellgroup %in% x)
+                        x.gset <- gset[,x.meta$sample]
+                        x.design <- model.matrix(~ 0 + time, 
+                                     x.meta)
+                        # remove the zero-columns
+                        x.design <- x.design[,colSums(x.design) > 0]
+                        x.fit <- lmFit(x.gset, x.design)
+                        x.fit
+                      })
+names(by_cell_fits) <- unique(by_celltype_time$cellgroup)
+```
+
+```{}
+gset$bycell <- as.factor(by_celltype_time$cellgroup)
+gset$bytime <- as.factor(by_celltype_time$time)
+# contrasts.args
+contrasts_args <- lapply(by_celltype_time, contrasts, contrasts = FALSE)
+# use the contrasts that we defined in contrasts_args to set the design matrix
+# zero-out the coefficients
+design_bycell_bytime <- model.matrix(~ 0 + time, 
+                                     by_celltype_time,
+                                     contrasts.arg = contrasts_args) 
 # colnames(design) <- c(unique(by_cell_type$cellgroup),unique(gset$bytime))
-fit_bycell_bytime <- lmFit(gset, design)
+```
+
+Fit model
+```{}
+by_cell_fits <- lmFit(gset, design_bycell_bytime)
+```
+
+Extract p-values, t-statistics, and B-statistics
+```{r ebayes_decidetests_topT}
+alpha <- 0.01
+# moderated t-statistic
+# fit_bycell_bytime_ebayes <- eBayes(fit = fit_bycell_bytime,
+#                                    proportion = alpha)
+by_cell_fits_ebayes <- lapply(by_cell_fits,
+                              function(x) {
+                                eBayes(fit = x,proportion = alpha)
+                              })
+
+names(by_cell_fits_ebayes) <- names(by_cell_fits)
+# print(summary(fit_bytime_ebayes))
+```
+
+Decide tests
+```{r}
+# decideTests will determine which genes are significantly expressed (up or down) for each contrast that we tested. 
+fit_bycell_bytime_decideTests <- decideTests(object = fit_bycell_bytime_ebayes,method = "global",adjust.method = "fdr",p.value = alpha)
+# this gives us the top table, and we can select specific genes based on the output from decideTests
+tT_bycell_bytime <- topTable(fit_bycell_bytime_ebayes, adjust="fdr", sort.by="B",number = nrow(fit_bytime_ebayes))
+# summarize which genes are significant
+print(summary(fit_bycell_bytime_decideTests))
+# get the genes that 
+```
+
+```{r}
 # compare breast to all 
 cont.matrix <- makeContrasts(breast-colon, levels=design)
 # fit1 <- contrasts.fit(fit,cont.matrix)
