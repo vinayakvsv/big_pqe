@@ -5,7 +5,7 @@ output: html_notebook
 
 # Setup packages
 ```{r setup}
-# source("https://bioconductor.org/biocLite.R")
+source("https://bioconductor.org/biocLite.R")
 biocLite("Biobase")
 biocLite("GEOquery")
 biocLite("limma")
@@ -120,7 +120,7 @@ tT <- topTable(fit2, adjust="fdr", sort.by="B", number=250)
 # allT <- topTable(fit2, adjust="none", sort.by="B",number = nrow(fit2))
 tT <- topTable(fit2, adjust="fdr", sort.by="B",number = nrow(fit2))
 
-allT_subset <- subset(allT, select=c("ID","adj.P.Val","P.Value","t","B","logFC","GENE_SYMBOL","GENE_NAME"))
+# allT_subset <- subset(allT, select=c("ID","adj.P.Val","P.Value","t","B","logFC","GENE_SYMBOL","GENE_NAME"))
 tT_subset <- subset(tT, select=c("ID","adj.P.Val","P.Value","t","B","logFC","GENE_SYMBOL","GENE_NAME"))
 ```
 
