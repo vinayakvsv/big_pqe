@@ -40,6 +40,12 @@ gset_canadas <- gset_canadas0[[idx]]
 This experiment is one-channel
 
 ```{r}
+print(gset_canadas$description)
 ```
 
+This is a pretty simple experiment
 
+```{r}
+
+# gset_canadas_meta <- data.frame
+```
