@@ -1,0 +1,196 @@
+---
+title: "Sheng and LaFleur 2018 RNA-seq reanalysis (mouse)"
+output: html_notebook
+---
+
+Sheng and LaGleur used RNA-seq. They aligned their data using STAR to hg19 (it appears ENSEMBL, judging from the gene names given), yielding Integer counts. They did differential expression analysis using edgeR. 
+
+The RNA-seq methods description from their methods
+
+```
+Raw reads were aligned to hg19 or mm9 using STAR (v2.4.2a) with the parameter ‘‘quantMode’’ set as ‘‘GeneCounts’’ to produce count table for each gene. Differential gene analysis was performed on gene raw counts in R with edgeR package (v3.18.1) from bio- conductor. Read count table was filtered so that genes with at least one count across conditions were kept. The negative binomial generalized log-linear model was used in differential analysis. A FDR cut-off of 0.05 was used to determine significantly differentially expressed genes. The R package gProfileR (v0.6.4) was used to perform gene enrichment analysis on differential genes. Gene set enrichment analysis (GSEA) was performed with R package clusterProfiler (v3.4.4).
+The function analyzeRepeats.pl from Homer (http://homer.ucsd.edu/homer/) software was used to get raw counts for repeats from RNA-seq data. Differential expression for repeats was performed with edgeR the same way as for genes.
+```
+
+This notebook depicts the re-analysis of mouse data
+
+# Setup
+```{r}
+install.packages("readxl")
+library(readxl)
+source("https://bioconductor.org/biocLite.R")
+biocLite("Biobase")
+biocLite("GEOquery")
+biocLite("limma")
+biocLite("edgeR")
+biocLite("gProfileR")
+biocLite("GSVA")
+biocLite("GO.db")
+biocLite("org.Hs.eg.db")
+biocLite("org.Mm.eg.db")
+source("../../pipelines/gsva_script.R")
+biocLite("EnsDb.Hsapiens.v86")
+```
+
+```{r}
+library("Biobase")
+library("GEOquery")
+library("limma")
+library("edgeR")
+library("gProfileR")
+library("GSVA")
+library("GO.db")
+library("org.Hs.eg.db")
+library("org.Mm.eg.db")
+library("EnsDb.Hsapiens.v86")
+```
+
+
+# Get data
+
+## import datasets
+
+```{r get_csv_counts}
+mouse_rnaseq <- read.csv(file = "../../datasets/sheng_lafleur/GSE112230_2018-03-01_rnaseq_mm_counts.csv",header = TRUE,row.names = 1,sep = ",")
+mouse_erv <- read.csv(file = "../../datasets/sheng_lafleur/GSE112230_2018-03-22_repeat_count_mm.csv",header = TRUE,row.names = 1,sep = ",")
+```
+
+## design
+
+Setup from GSEA
+```
+GSM3061399	ctl_1: Scramble rep1
+GSM3061400	ctl_2: Scramble rep2
+GSM3061401	ctl_4: Scramble rep3
+GSM3061402	ko_5: LSD1 KO rep1
+GSM3061403	ko_6: LSD1 KO rep2
+GSM3061404	ko_7: LSD1 KO rep3
+GSM3061405	dko_8: LSD1/MDA5 DKO rep1
+GSM3061406	dko_9: LSD1/MDA5 DKO rep2
+GSM3061407	dko_10: LSD1/MDA5 DKO rep3
+
+```
+
+```{r}
+#mouse_rnaseq_design <- data.frame()
+mouse_rnaseq_design <- data.frame(cell = factor(rep("B16",ncol(mouse_rnaseq))))
+rownames(mouse_rnaseq_design) <- colnames(mouse_rnaseq)
+mouse_rnaseq_design$treatment <- factor(c(rep("A_Scramble",3),
+                                          rep("B_LSD1_KO",3),
+                                          rep("C_LSD1_MDA5_DKO",3)))
+mouse_rnaseq_design$rep <- factor(rep(c(1,2,3),3))
+print(mouse_rnaseq_design)
+
+# model matrix
+mouse_rnaseq_model_matrix <- model.matrix(~ treatment,
+                                          mouse_rnaseq_design,contrasts.arg = mouse_rnaseq_design$treatment)
+print(mouse_rnaseq_model_matrix)
+# treat the sh-Control as the "baseline", so it gets an intercept term
+```
+
+# edgeR analysis
+
+## dge list
+set DGElist object
+```{r dgelist}
+mouse_rnaseq_dge <- DGEList(counts=mouse_rnaseq,
+                            genes = data.frame(genes = rownames(mouse_rnaseq))) # set DGE list
+mouse_rnaseq_dge <- calcNormFactors(object = mouse_rnaseq_dge) # set normalization factors
+mouse_rnaseq_dge <- estimateDisp(y = mouse_rnaseq_dge,
+                                 design = mouse_rnaseq_model_matrix) # set dispersion factors
+plotBCV(y = mouse_rnaseq_dge)
+# mouse_rnaseq_dge_exactTest <- exactTest(mouse_rnaseq_dge)
+```
+
+## glm
+fit GLM
+```{r}
+mouse_rnaseq_dge_fit <- glmQLFit(mouse_rnaseq_dge, mouse_rnaseq_model_matrix)
+```
+
+## check conditions
+Perform tests
+```{r}
+logFC_edgeR_lim <- 2
+pval_cutoff <- 0.01
+n_toptag <- 1000
+# coef = 1 measures the baseline genes
+mouse_rnaseq_dge_fit_coeff1 <- glmQLFTest(glmfit = mouse_rnaseq_dge_fit,coef = 1)
+# coef = 2 measures the fold-changes between the control and the fold change
+mouse_rnaseq_dge_fit_coeff2 <- glmQLFTest(glmfit = mouse_rnaseq_dge_fit,coef = 2)
+mouse_rnaseq_dge_fit_coeff2_lrt <- glmLRT(glmfit = mouse_rnaseq_dge_fit,coef = 2)
+
+mouse_rnaseq_dge_fit_treat <- glmTreat(glmfit = mouse_rnaseq_dge_fit, 
+                                       coef=2, 
+                                       lfc=logFC_edgeR_lim)
+
+# topTags; show top 10
+mouse_rnaseq_dge_fit_coeff1_top <- topTags(mouse_rnaseq_dge_fit_coeff1)
+mouse_rnaseq_dge_fit_coeff2_top <- topTags(mouse_rnaseq_dge_fit_coeff2,p.value = pval_cutoff)
+mouse_rnaseq_dge_fit_coeff2_lrt_top <- topTags(mouse_rnaseq_dge_fit_coeff2_lrt,
+                                               p.value = pval_cutoff,
+                                               n = n_toptag)
+mouse_rnaseq_dge_fit_coeff2_treat_top <- topTags(object = mouse_rnaseq_dge_fit_treat,
+                                                 p.value = pval_cutoff,
+                                                 adjust.method = "BH",
+                                                 n = n_toptag,sort.by = "logFC")
+#mouse_rnaseq_dge_fit_treat <- glmTreat(glmfit = mouse_rnaseq_dge_fit, coef=1, lfc=logFC_edgeR_lim)
+#mouse_rnaseq_dge_fit_diff_top <- topTags(mouse_rnaseq_dge_fit_treat) #glmQLFTest(glmfit = mouse_rnaseq_dge_fit,coef = 2)
+
+# plot
+plot(mouse_rnaseq_dge_fit_coeff2_lrt$table$logFC,
+     -log10(mouse_rnaseq_dge_fit_coeff2_lrt$table$PValue),
+     pch=20)
+points(mouse_rnaseq_dge_fit_coeff2_lrt_top$table$logFC,
+       -log10(mouse_rnaseq_dge_fit_coeff2_lrt_top$table$PValue),
+       col="red",pch=20)
+
+# plotMD
+plotMD(object = mouse_rnaseq_dge_fit_coeff2_lrt,adjust.method = "BH",p.value = pval_cutoff)
+```
+
+# GO analysis
+
+## goana
+
+```{r}
+# need to debug kegga
+golrt <- kegga(de = mouse_rnaseq_dge_fit_coeff2_lrt,geneid = mouse_rnaseq_dge_fit_coeff2_lrt$genes$genes)
+# de = mouse_rnaseq_dge_fit_coeff2_lrt,
+#               species="Hs")
+topGO(golrt)
+# why do pathways not overlap with the universe?
+```
+
+New from edgeR
+```{r}
+mouse_rnaseq_dge_fit_coeff2_go <- goana(de = mouse_rnaseq_dge_fit_coeff2, species="Mm")
+```
+
+
+# Running GSVA analysis
+
+Some helpful code notes
+```
+vvv3@login04:~/pillaifolder/rmarkdown/tfh_diffn$ grep -s "gsva" *.Rmd
+ranking_enhancerCluster_genes.Rmd:                             "pipelines/transcriptomics_pipeline/gsea/gsva_script.R"),
+tfhdiff.Rmd:source("pipelines/transcriptomics_pipeline/gsea/gsva_script.R")
+tfhdiff.Rmd:prepare_gsva()
+tfhdiff.Rmd:tcell.genesets.tfh.enrich <- gsva_enrich(counts = tcell.enrich.counts$counts.aggregate,geneset = tcell.genesets)
+vvv3@login04:~/pillaifolder/rmarkdown/tfh_diffn$ grep -s "tcell.genesets" *.Rmd
+tfhdiff.Rmd:tcell.genesets <- import_gmt(gmtfile = "referenceAnnotation/hg38/genesets/msigdb/custom/msigdb_tcell_genesets.gmt")
+tfhdiff.Rmd:tcell.genesets.tfh.enrich <- gsva_enrich(counts = tcell.enrich.counts$counts.aggregate,geneset = tcell.genesets)
+tfhdiff.Rmd:#colnames(tcell.genesets.tfh.enrich$es.obs) <- c("CD4naive","PD1loCXCR5pos","PD1intCXCR5pos","PD1hiCXCR5hi")
+tfhdiff.Rmd:tcell.genesets.tfh.enrich.es.kmeans <- kmeans_intervals(matrix = tcell.genesets.tfh.enrich$es.obs,kmax = 5,B=50)
+tfhdiff.Rmd:tcell.genesets.tfh.enrich.es <- as.data.frame(tcell.genesets.tfh.enrich$es.obs)
+tfhdiff.Rmd:tcell.genesets.tfh.enrich.es$k.choice <- tcell.genesets.tfh.enrich.es.kmeans$matrix.kmeans$kmeans
+tfhdiff.Rmd:length(tcell.genesets.tfh.enrich.es$k.choice)
+tfhdiff.Rmd:dim(tcell.genesets.tfh.enrich.es)
+tfhdiff.Rmd:tcell.genesets.tfh.enrich.es <- tcell.genesets.tfh.enrich.es[order(tcell.genesets.tfh.enrich.es$k.choice),]
+tfhdiff.Rmd:#enrichments <- tcell.genesets.tfh.enrich$es.obs[sort(tcell.genesets.tfh.enrich.es.kmeans$matrix.kmeans$kmeans),]
+tfhdiff.Rmd:rowannotation.ssgsea <- data.frame(kchoice = as.factor(sort(tcell.genesets.tfh.enrich.es.kmeans$matrix.kmeans$kmeans)))
+tfhdiff.Rmd:#rowannotation.ssgsea <- data.frame(kchoice = as.factor(tcell.genesets.tfh.enrich.es.kmeans$matrix.kmeans$kmeans))
+tfhdiff.Rmd:head(tcell.genesets.tfh.enrich.es)
+tfhdiff.Rmd:pheatmap(mat = tcell.genesets.tfh.enrich.es[,c(1:(ncol(tcell.genesets.tfh.enrich.es)-1))],
+vvv3@login04:~/pillaifolder/rmarkdown/tfh_diffn$
+```
