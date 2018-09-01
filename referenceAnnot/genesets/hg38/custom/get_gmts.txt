@@ -7,3 +7,8 @@
   691  grep -e "ANTIGEN" -e "[Aa]ntigen" *.gmt | sort -k1,1 | uniq > custom/msigdb_antigen.gmt
   694  grep -e "INFLAMMATION" -e "[Ii]nflammation" *.gmt | sort -k1,1 | uniq >> custom/msigdb_inflammation.gmt
 
+  363  grep -e "VIRAL" -e "VIRUS" -e "virus" -e "viral" *.gmt | sed 's/:/\t/g' | cut -f2- | sort -k1,1 | uniq > custom/msigdb_virus.gmt
+  364  grep -e "INTERFERON" -e "[Ii]nterferon" *.gmt | sed 's/:/\t/g' | cut -f2- | sort -k1,1 | uniq > custom/msigdb_interferon.gmt
+  365  grep -e "[Cc]ytokine" -e "CYTOKINE" -e "[Cc]hemokine" -e "CHEMOKINE" *.gmt | sed 's/:/\t/g' | cut -f2- | sort -k1,1 | uniq > custom/msigdb_cytochemokine.gmt
+  366  grep -e "ANTIGEN" -e "[Aa]ntigen" *.gmt | sed 's/:/\t/g' | cut -f2- | sort -k1,1 | uniq > custom/msigdb_antigen.gmt
+  367  grep -e "INFLAMMATION" -e "[Ii]nflammation" *.gmt | sed 's/:/\t/g' | cut -f2- | sort -k1,1 | uniq > custom/msigdb_inflammation.gmt
