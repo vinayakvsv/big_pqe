@@ -29,6 +29,7 @@ biocLite("GO.db")
 biocLite("org.Hs.eg.db")
 biocLite("org.Mm.eg.db")
 source("../../pipelines/gsva_script.R")
+biocLite("EnsDb.Hsapiens.v86")
 ```
 
 ```{r}
@@ -41,6 +42,7 @@ library("GSVA")
 library("GO.db")
 library("org.Hs.eg.db")
 library("org.Mm.eg.db")
+library("EnsDb.Hsapiens.v86")
 ```
 
 
@@ -134,16 +136,16 @@ plotMD(object = human_rnaseq_dge_fit_coeff2_lrt,adjust.method = "BH",p.value = p
 
 ```{r}
 # need to debug kegga
-golrt <- kegga(de = human_rnaseq_dge_fit_coeff2_lrt,geneid = rownames(human_rnaseq_dge_fit_coeff2_lrt$table))
+golrt <- kegga(de = human_rnaseq_dge_fit_coeff2_lrt,geneid = human_rnaseq_dge_fit_coeff2_lrt$genes$genes)
 # de = human_rnaseq_dge_fit_coeff2_lrt,
 #               species="Hs")
 topGO(golrt)
+# why do pathways not overlap with the universe?
 ```
 
 New from edgeR
 ```{r}
-biocLite("")
-human_rnaseq_dge_fit_coeff2_go <- goana(human_rnaseq_dge_fit_coeff2, species="Hs")
+human_rnaseq_dge_fit_coeff2_go <- goana(de = human_rnaseq_dge_fit_coeff2, species="Hs")
 ```
 
 
