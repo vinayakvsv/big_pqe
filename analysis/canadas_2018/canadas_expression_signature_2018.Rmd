@@ -273,4 +273,13 @@ write.table(x = tT_canadas_sig_up_h69m_in_sem,file = "./tT_canadas_sig_up_h69m_i
 
 # GSVA analysis
 
-Now, we will examine gene sets
+Prepare gsva
+```{r}
+biocLite("KEGG.db")
+biocLite("qusage")
+install.packages("rlecuyer")
+biocLite("piano")
+prepare_gsva()
+```
+
+
