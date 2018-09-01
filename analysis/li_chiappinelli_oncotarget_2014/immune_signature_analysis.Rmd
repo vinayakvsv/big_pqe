@@ -4,7 +4,7 @@ output: html_notebook
 ---
 
 # Setup packages
-```{r setup}
+```{r}
 source("https://bioconductor.org/biocLite.R")
 biocLite("Biobase")
 biocLite("GEOquery")
@@ -337,6 +337,7 @@ Extract p-values, t-statistics, and B-statistics
 alpha <- 0.05
 avgExp_min <- -100
 avgExp_max <- 1000
+lim_lfc <- 1
 # moderated t-statistic
 # fit_bycell_bytime_ebayes <- eBayes(fit = fit_bycell_bytime,
 #                                    proportion = alpha)
@@ -348,6 +349,7 @@ by_cell_fits_ebayes <- lapply(by_cell_fits,
 names(by_cell_fits_ebayes) <- names(by_cell_fits)
 
 # decide tests
+# should add some way to compute log fold change here...
 by_cell_fits_decideTests <- lapply(by_cell_fits_ebayes,
                               function(x) {
                                 decideTests(object = x,
@@ -377,6 +379,14 @@ immune <- paste("immune",sep = "|")
 controlsig <- paste("mitochondrion",sep = "|")
 interferon <- paste("interferon",sep = "|")
 
+li_oncotarget_terms <- paste("interferon",
+                             "cytokine",
+                             "inflammation",
+                             "influenza",
+                             "testes",
+                             "presentation",
+                             sep = "|")
+
 sig_up_genes <- lapply(seq_along(along.with = by_cell_fits_decideTests),
                     function(x) {
                       x.decide <- by_cell_fits_decideTests[[x]]
@@ -402,7 +412,7 @@ names(sig_up_genes) <- names(by_cell_fits_decideTests)
 sig_up_genes_in_signature <- lapply(seq_along(along.with = sig_up_genes),
                                  function(x) {
                                    x.tT <- sig_up_genes[[x]]
-                                   x.tT_signature <- x.tT[grep(pattern = interferon,x = x.tT$GO_ID,ignore.case = TRUE),]
+                                   x.tT_signature <- x.tT[grep(pattern = li_oncotarget_terms,x = x.tT$GO_ID,ignore.case = TRUE),]
                                    x.tT_signature
                                  })
 names(sig_up_genes_in_signature) <- names(by_cell_fits_decideTests)
@@ -442,6 +452,13 @@ plot_sig_up_genes <- lapply(seq_along(along.with = sig_up_genes),
                                 -log10(x.tT.signature$adj.P.Val),
                                 pch=20,
                                 col="pink")
+                           legend(x = "topright",
+                                  legend = c("all genes",
+                                             "significantly increased expression",
+                                             "immune signature"),
+                                  col = c("black",
+                                          "grey",
+                                          "pink"))
                          })
 ```
 
@@ -504,6 +521,21 @@ pheatmap(mat = gset_log2exp_sig,
 ```
 
 Perhaps we can re-run GSEA on all of the "significant" genes?
+
+Save the current gene signature
+```{r}
+
+lapply(seq_along(sig_up_genes_in_signature),
+       function(x) {
+         x.sig <- sig_up_genes_in_signature[[x]]
+         x.tT_subset <- subset(x.sig, select=c("ID","adj.P.Val","P.Value","F","GENE_SYMBOL","GENE_NAME","AveExpr","GO_ID"))
+         # "timeDay.1","timeDay.10","timeDay.14","timeDay.21","timeDay.3","timeDay.7
+         x.filename <- paste(names(sig_up_genes_in_signature)[x],"_table",".txt",sep = "")
+         print(paste("writing",x.filename))
+         write.table(x = "./",file = x.filename,quote = FALSE,sep = "\t",row.names = TRUE,col.names = TRUE)
+       })
+```
+
 
 
 # Scraps
