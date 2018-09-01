@@ -134,7 +134,7 @@ plotMD(object = human_rnaseq_dge_fit_coeff2_lrt,adjust.method = "BH",p.value = p
 
 ## goana
 
-```{r}
+```{}
 # need to debug kegga
 golrt <- kegga(de = human_rnaseq_dge_fit_coeff2_lrt,geneid = human_rnaseq_dge_fit_coeff2_lrt$genes$genes)
 # de = human_rnaseq_dge_fit_coeff2_lrt,
@@ -144,12 +144,53 @@ topGO(golrt)
 ```
 
 New from edgeR
-```{r}
+```{}
 human_rnaseq_dge_fit_coeff2_go <- goana(de = human_rnaseq_dge_fit_coeff2, species="Hs")
 ```
 
+We must convert the ENSEMBL names to gene symbols
+```{r convert_ens_names}
+# get ENSEMBL annotation
+ensembl_annot <- read.table(file = "../../datasets/transcripts/Homo_sapiens.GRCh38.91.names.txt",header = FALSE,sep = "\t")
+ensembl_annot$V1 <- sapply(ensembl_annot$V1,
+                           function(x) {
+                             a <- unlist(strsplit(x = as.character(x),split = " "))
+                             a[2]
+                           })
+ensembl_annot$V2 <- sapply(ensembl_annot$V2,
+                           function(x) {
+                             a <- unlist(strsplit(x = as.character(x),split = " "))
+                             a[2]
+                           })
+colnames(ensembl_annot) <- c("ensid","symbol")
+
+# match names
+ens_names <- as.character(human_rnaseq_dge$genes$genes)
+# split the given names
+ens_names_split <- as.character(sapply(ens_names,
+                          function(x) {
+                            a <- unlist(strsplit(x = as.character(x),split = ".",fixed = TRUE))
+                            a[1]
+                          }))
+
+matched_names <- sapply(ens_names,
+                        function(x) {
+                          # get the gene name
+                          a <- unlist(strsplit(x = as.character(x),split = ".",fixed = TRUE))
+                          ensg <- a[1]
+                          symbol <- subset(ensembl_annot,V1 %in% ensg)[,2]
+                          symbol
+                        })
+
+```
+
+
+```{r}
+human_rnaseq_dge$symbol <- data.frame(symbols = matched_names)
+```
 
 # Running GSVA analysis
+
 
 Some helpful code notes
 ```
