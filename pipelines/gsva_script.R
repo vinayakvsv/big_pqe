@@ -20,11 +20,16 @@ prepare_gsva <- function() {
   
 }
 #
-import_counts <- function(countsfile) {
-  counts <- read.table(file = countsfile,
-                       header = TRUE,
-                       sep = "\t",
-                       row.names = 1)
+import_counts <- function(countsfile,imported_counts=TRUE) {
+  if (!imported_counts) {
+    counts <- read.table(file = countsfile,
+                         header = TRUE,
+                         sep = "\t",
+                         row.names = 1)
+  } else {
+    counts <- countsfile
+  }
+  
   gene.names <- sapply(rownames(counts),function(x) {a <- unlist(strsplit(as.character(x),split = "_")); a[2]})
   counts.aggregate <- aggregate(x = counts,by = list(gene.names),FUN = mean)
   rownames(counts.aggregate) <- counts.aggregate$Group.1

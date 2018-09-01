@@ -96,58 +96,53 @@ Perform tests
 ```{r}
 logFC_edgeR_lim <- 2
 pval_cutoff <- 0.01
-n_toptag <- 1000
+n_toptag <- 10000
 # coef = 1 measures the baseline genes
-human_rnaseq_dge_fit_coeff1 <- glmQLFTest(glmfit = human_rnaseq_dge_fit,coef = 1)
+human_rnaseq_dge_fit_coeff1_qlft <- glmQLFTest(glmfit = human_rnaseq_dge_fit,coef = 1)
 # coef = 2 measures the fold-changes between the control and the fold change
-human_rnaseq_dge_fit_coeff2 <- glmQLFTest(glmfit = human_rnaseq_dge_fit,coef = 2)
-human_rnaseq_dge_fit_coeff2_lrt <- glmLRT(glmfit = human_rnaseq_dge_fit,coef = 2)
-
+human_rnaseq_dge_fit_coeff2_qlft <- glmQLFTest(glmfit = human_rnaseq_dge_fit,
+                                               coef = 2,
+                                               poisson.bound = TRUE)
+# coef = 2, but we use a LRT. 
+human_rnaseq_dge_fit_coeff2_lrt <- glmLRT(glmfit = human_rnaseq_dge_fit,
+                                          coef = 2)
+# coeff = 2 with "glmTreat". This option performs a fold-change cutoff
 human_rnaseq_dge_fit_treat <- glmTreat(glmfit = human_rnaseq_dge_fit, 
                                        coef=2, 
                                        lfc=logFC_edgeR_lim)
 
 # topTags; show top 10
-human_rnaseq_dge_fit_coeff1_top <- topTags(human_rnaseq_dge_fit_coeff1)
-human_rnaseq_dge_fit_coeff2_top <- topTags(human_rnaseq_dge_fit_coeff2,p.value = pval_cutoff)
-human_rnaseq_dge_fit_coeff2_lrt_top <- topTags(human_rnaseq_dge_fit_coeff2_lrt,p.value = pval_cutoff)
+human_rnaseq_dge_fit_coeff1_qlft_top <- topTags(human_rnaseq_dge_fit_coeff1_qlft)
+human_rnaseq_dge_fit_coeff2_qlft_top <- topTags(human_rnaseq_dge_fit_coeff2_qlft,
+                                                p.value = pval_cutoff,
+                                                n = n_toptag,
+                                                adjust.method = "BH",sort.by = "logFC")
+human_rnaseq_dge_fit_coeff2_qlft_top_up <- human_rnaseq_dge_fit_coeff2_qlft_top
+human_rnaseq_dge_fit_coeff2_qlft_top_up$table <- subset(human_rnaseq_dge_fit_coeff2_qlft_top$table,abs(logFC) > logFC_edgeR_lim)
+human_rnaseq_dge_fit_coeff2_lrt_top <- topTags(object = human_rnaseq_dge_fit_coeff2_lrt,
+                                               p.value = pval_cutoff,
+                                               n = n_toptag,
+                                               adjust.method = "BH",sort.by = "PValue")
 human_rnaseq_dge_fit_coeff2_treat_top <- topTags(object = human_rnaseq_dge_fit_treat,
                                                  p.value = pval_cutoff,
                                                  adjust.method = "BH",
                                                  n = n_toptag,sort.by = "logFC")
-#human_rnaseq_dge_fit_treat <- glmTreat(glmfit = human_rnaseq_dge_fit, coef=1, lfc=logFC_edgeR_lim)
-#human_rnaseq_dge_fit_diff_top <- topTags(human_rnaseq_dge_fit_treat) #glmQLFTest(glmfit = human_rnaseq_dge_fit,coef = 2)
 
-# plot
-plot(human_rnaseq_dge_fit_treat$table$logFC,
-     -log10(human_rnaseq_dge_fit_treat$table$PValue),
+# plot the fold-changes-vs-pvalue and the top genes by the LRT
+plot(human_rnaseq_dge_fit_coeff2_qlft$table$logFC,
+     -log10(human_rnaseq_dge_fit_coeff2_qlft$table$PValue),
      pch=20)
-points(human_rnaseq_dge_fit_coeff2_treat_top$table$logFC,
-       -log10(human_rnaseq_dge_fit_coeff2_treat_top$table$PValue),
+points(human_rnaseq_dge_fit_coeff2_qlft_top_up$table$logFC,
+       -log10(human_rnaseq_dge_fit_coeff2_qlft_top_up$table$PValue),
        col="red",pch=20)
 
 # plotMD
-plotMD(object = human_rnaseq_dge_fit_coeff2_lrt,adjust.method = "BH",p.value = pval_cutoff)
+plotMD(object = human_rnaseq_dge_fit_coeff2_qlft,adjust.method = "BH",p.value = pval_cutoff)
 ```
 
 # GO analysis
 
-## goana
-
-```{}
-# need to debug kegga
-golrt <- kegga(de = human_rnaseq_dge_fit_coeff2_lrt,geneid = human_rnaseq_dge_fit_coeff2_lrt$genes$genes)
-# de = human_rnaseq_dge_fit_coeff2_lrt,
-#               species="Hs")
-topGO(golrt)
-# why do pathways not overlap with the universe?
-```
-
-New from edgeR
-```{}
-human_rnaseq_dge_fit_coeff2_go <- goana(de = human_rnaseq_dge_fit_coeff2, species="Hs")
-```
-
+## preparation
 We must convert the ENSEMBL names to gene symbols
 ```{r convert_ens_names}
 # get ENSEMBL annotation
@@ -164,33 +159,67 @@ ensembl_annot$V2 <- sapply(ensembl_annot$V2,
                            })
 colnames(ensembl_annot) <- c("ensid","symbol")
 
-# match names
-ens_names <- as.character(human_rnaseq_dge$genes$genes)
+# obtain the symbols of the most differentially-expressed genes
+ens_names <- as.character(human_rnaseq_dge_fit_coeff2_lrt_top$table$genes)
+ens_names <- as.character(human_rnaseq_dge_fit_coeff2_qlft_top_up$table$genes)
+
 # split the given names
-ens_names_split <- as.character(sapply(ens_names,
+ens_names_split <- sapply(ens_names,
                           function(x) {
                             a <- unlist(strsplit(x = as.character(x),split = ".",fixed = TRUE))
                             a[1]
-                          }))
+                          })
 
-matched_names <- sapply(ens_names,
+```
+
+
+Match names
+```{r}
+# library(dplyr)
+matched_names <- sapply(ens_names_split,
                         function(x) {
                           # get the gene name
-                          a <- unlist(strsplit(x = as.character(x),split = ".",fixed = TRUE))
-                          ensg <- a[1]
-                          symbol <- subset(ensembl_annot,V1 %in% ensg)[,2]
+                          symbol <- unlist(subset(ensembl_annot,ensid %in% x)[,2])
+                          # symbol <- unlist(subset(ensembl_annot,ensid %in% x)[,2])
                           symbol
                         })
-
 ```
-
 
 ```{r}
-human_rnaseq_dge$symbol <- data.frame(symbols = matched_names)
+# some of these genes may not have been identified in our annotation, so we will omit them for now
+matched_names_is_annotated <- sapply(matched_names,
+                                     function(x) {
+                                       length(x) > 0})
+matched_names_annotated <- matched_names[matched_names_is_annotated]
+matched_names_annotated_df <- as.data.frame(do.call(rbind,matched_names_annotated))
+colnames(matched_names_annotated_df) <- "symbol"
+human_rnaseq_dge_fit_coeff2_qlft$dex_symbol <- matched_names_annotated_df #data.frame(symbols = matched_names)
+# match the annotations to the top-most genes
+# human_rnaseq_dge_fit_coeff2_lrt_top$table$symbol <- 
+
 ```
 
-# Running GSVA analysis
+Isolate the counts for the genes of interest
+```{r}
+human_rnaseq_dge_fit_coeff2_qlft_top_counts <- human_rnaseq_dge_fit_coeff2_qlft$table
+```
 
+
+## goana
+
+```{r}
+# need to debug kegga
+golrt <- kegga(de = human_rnaseq_dge_fit_coeff2_qlft,geneid = human_rnaseq_dge_fit_coeff2_qlft$genes$genes)
+# de = human_rnaseq_dge_fit_coeff2_lrt,
+#               species="Hs")
+topGO(golrt)
+# why do pathways not overlap with the universe?
+```
+
+New from edgeR
+```{}
+human_rnaseq_dge_fit_coeff2_go <- goana(de = human_rnaseq_dge_fit_coeff2, species="Hs")
+```
 
 Some helpful code notes
 ```
