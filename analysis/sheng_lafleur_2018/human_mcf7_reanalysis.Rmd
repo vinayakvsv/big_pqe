@@ -25,14 +25,126 @@ biocLite("limma")
 biocLite("edgeR")
 biocLite("gProfileR")
 biocLite("GSVA")
+biocLite("GO.db")
+biocLite("org.Hs.eg.db")
+biocLite("org.Mm.eg.db")
 source("../../pipelines/gsva_script.R")
 ```
 
-# import datasets
+```{r}
+library("Biobase")
+library("GEOquery")
+library("limma")
+library("edgeR")
+library("gProfileR")
+library("GSVA")
+library("GO.db")
+library("org.Hs.eg.db")
+library("org.Mm.eg.db")
+```
 
-TO BE DONE
+
+# Get data
+
+## import datasets
+
+```{r get_csv_counts}
+human_rnaseq <- read.csv(file = "../../datasets/sheng_lafleur/GSE112230_2018-03-14_rnaseq_hs_counts.csv",header = TRUE,row.names = 1,sep = ",")
+human_erv <- read.csv(file = "../../datasets/sheng_lafleur/GSE112230_2018-03-22_repeat_count_hs.csv",header = TRUE,row.names = 1,sep = ",")
+```
+
+## design
+
+```{r}
+#human_rnaseq_design <- data.frame()
+human_rnaseq_design <- data.frame(cell = factor(rep("MCF7",ncol(human_rnaseq))))
+rownames(human_rnaseq_design) <- colnames(human_rnaseq)
+human_rnaseq_design$treatment <- factor(c(rep("shC",2),rep("shLSD1",2)))
+human_rnaseq_design$rep <- factor(c(1,2,1,2))
+print(human_rnaseq_design)
+
+# model matrix
+human_rnaseq_model_matrix <- model.matrix(~ treatment,human_rnaseq_design)
+print(human_rnaseq_model_matrix)
+# treat the sh-Control as the "baseline", so it gets an intercept term
+```
 
 # edgeR analysis
+
+## dge list
+set DGElist object
+```{r dgelist}
+human_rnaseq_dge <- DGEList(counts=human_rnaseq,
+                            genes = data.frame(genes = rownames(human_rnaseq))) # set DGE list
+human_rnaseq_dge <- calcNormFactors(object = human_rnaseq_dge) # set normalization factors
+human_rnaseq_dge <- estimateDisp(y = human_rnaseq_dge,
+                                 design = human_rnaseq_model_matrix) # set dispersion factors
+plotBCV(y = human_rnaseq_dge)
+# human_rnaseq_dge_exactTest <- exactTest(human_rnaseq_dge)
+```
+
+## glm
+fit GLM
+```{r}
+human_rnaseq_dge_fit <- glmQLFit(human_rnaseq_dge, human_rnaseq_model_matrix)
+```
+
+## check conditions
+Perform tests
+```{r}
+logFC_edgeR_lim <- 2
+pval_cutoff <- 0.01
+n_toptag <- 1000
+# coef = 1 measures the baseline genes
+human_rnaseq_dge_fit_coeff1 <- glmQLFTest(glmfit = human_rnaseq_dge_fit,coef = 1)
+# coef = 2 measures the fold-changes between the control and the fold change
+human_rnaseq_dge_fit_coeff2 <- glmQLFTest(glmfit = human_rnaseq_dge_fit,coef = 2)
+human_rnaseq_dge_fit_coeff2_lrt <- glmLRT(glmfit = human_rnaseq_dge_fit,coef = 2)
+
+human_rnaseq_dge_fit_treat <- glmTreat(glmfit = human_rnaseq_dge_fit, 
+                                       coef=2, 
+                                       lfc=logFC_edgeR_lim)
+
+# topTags; show top 10
+human_rnaseq_dge_fit_coeff1_top <- topTags(human_rnaseq_dge_fit_coeff1)
+human_rnaseq_dge_fit_coeff2_top <- topTags(human_rnaseq_dge_fit_coeff2,p.value = pval_cutoff)
+human_rnaseq_dge_fit_coeff2_lrt_top <- topTags(human_rnaseq_dge_fit_coeff2_lrt,p.value = pval_cutoff)
+human_rnaseq_dge_fit_coeff2_treat_top <- topTags(object = human_rnaseq_dge_fit_treat,
+                                                 p.value = pval_cutoff,
+                                                 adjust.method = "BH",
+                                                 n = n_toptag,sort.by = "logFC")
+#human_rnaseq_dge_fit_treat <- glmTreat(glmfit = human_rnaseq_dge_fit, coef=1, lfc=logFC_edgeR_lim)
+#human_rnaseq_dge_fit_diff_top <- topTags(human_rnaseq_dge_fit_treat) #glmQLFTest(glmfit = human_rnaseq_dge_fit,coef = 2)
+
+# plot
+plot(human_rnaseq_dge_fit_treat$table$logFC,
+     -log10(human_rnaseq_dge_fit_treat$table$PValue),
+     pch=20)
+points(human_rnaseq_dge_fit_coeff2_treat_top$table$logFC,
+       -log10(human_rnaseq_dge_fit_coeff2_treat_top$table$PValue),
+       col="red",pch=20)
+
+# plotMD
+plotMD(object = human_rnaseq_dge_fit_coeff2_lrt,adjust.method = "BH",p.value = pval_cutoff)
+```
+
+# GO analysis
+
+## goana
+
+```{r}
+# need to debug kegga
+golrt <- kegga(de = human_rnaseq_dge_fit_coeff2_lrt,geneid = rownames(human_rnaseq_dge_fit_coeff2_lrt$table))
+# de = human_rnaseq_dge_fit_coeff2_lrt,
+#               species="Hs")
+topGO(golrt)
+```
+
+New from edgeR
+```{r}
+biocLite("")
+human_rnaseq_dge_fit_coeff2_go <- goana(human_rnaseq_dge_fit_coeff2, species="Hs")
+```
 
 
 # Running GSVA analysis
