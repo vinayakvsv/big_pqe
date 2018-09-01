@@ -1,0 +1,9 @@
+  665  grep -e "VIRAL" -e "VIRUS" -e "virus" -e "viral" *.gmt | sort -k1,1 | uniq > custom/msigdb_virus.gmt
+  672  grep -s "INTERFERON" *.gmt | sort -k1,1 | uniq > custom/msigdb_interferon.gmt
+  673  grep -s "CYTOKINE" *.gmt | sort -k1,1 | uniq > custom/msigdb_cytochemokine.gmt
+  674  grep -e "INTERFERON" -e "interferon" -e "Interferon" *.gmt | sort -k1,1 | uniq > custom/msigdb_interferon.gmt
+  681  grep -e "INTERFERON" -e "[Ii]nterferon" *.gmt | sort -k1,1 | uniq > custom/msigdb_interferon.gmt
+  682  grep -e "[Cc]ytokine" -e "CYTOKINE" -e "[Cc]hemokine" -e "CHEMOKINE" *.gmt | sort -k1,1 | uniq > custom/msigdb_cytochemokine.gmt
+  691  grep -e "ANTIGEN" -e "[Aa]ntigen" *.gmt | sort -k1,1 | uniq > custom/msigdb_antigen.gmt
+  694  grep -e "INFLAMMATION" -e "[Ii]nflammation" *.gmt | sort -k1,1 | uniq >> custom/msigdb_inflammation.gmt
+

@@ -68,14 +68,14 @@ import_gmt <- function(gmtfile) {
   return(in.gmt)
 }
 #
-gsva_enrich <- function(counts,geneset,...) {
+gsva_enrich <- function(counts,geneset,ikcdf="Poisson",...) {
   enrichresults <- gsva(expr = as.matrix(counts), 
                         gset.idx.list = geneset, 
                         min.sz=5, 
                         max.sz=500,
                         mx.diff=TRUE,
                         verbose=FALSE, 
-                        rnaseq=TRUE, 
+                        kcdf=ikcdf, 
                         parallel.sz=2,...)
   #issues with bootstrapping addressed here: https://support.bioconductor.org/p/91161/
   #enrichresults$$es.obs

@@ -15,7 +15,7 @@ The function analyzeRepeats.pl from Homer (http://homer.ucsd.edu/homer/) softwar
 This notebook depicts the re-analysis of human data
 
 # Setup
-```{r setup}
+```{r}
 install.packages("readxl")
 library(readxl)
 source("https://bioconductor.org/biocLite.R")
@@ -94,8 +94,8 @@ human_rnaseq_dge_fit <- glmQLFit(human_rnaseq_dge, human_rnaseq_model_matrix)
 ## check conditions
 Perform tests
 ```{r}
-logFC_edgeR_lim <- 2
-pval_cutoff <- 0.01
+logFC_edgeR_lim <- 1
+pval_cutoff <- 0.05
 n_toptag <- 10000
 # coef = 1 measures the baseline genes
 human_rnaseq_dge_fit_coeff1_qlft <- glmQLFTest(glmfit = human_rnaseq_dge_fit,coef = 1)
@@ -117,8 +117,8 @@ human_rnaseq_dge_fit_coeff2_qlft_top <- topTags(human_rnaseq_dge_fit_coeff2_qlft
                                                 p.value = pval_cutoff,
                                                 n = n_toptag,
                                                 adjust.method = "BH",sort.by = "logFC")
-human_rnaseq_dge_fit_coeff2_qlft_top_up <- human_rnaseq_dge_fit_coeff2_qlft_top
-human_rnaseq_dge_fit_coeff2_qlft_top_up$table <- subset(human_rnaseq_dge_fit_coeff2_qlft_top$table,abs(logFC) > logFC_edgeR_lim)
+human_rnaseq_dge_fit_coeff2_qlft_top_lfclim <- human_rnaseq_dge_fit_coeff2_qlft_top
+human_rnaseq_dge_fit_coeff2_qlft_top_lfclim$table <- subset(human_rnaseq_dge_fit_coeff2_qlft_top$table,abs(logFC) > logFC_edgeR_lim)
 human_rnaseq_dge_fit_coeff2_lrt_top <- topTags(object = human_rnaseq_dge_fit_coeff2_lrt,
                                                p.value = pval_cutoff,
                                                n = n_toptag,
@@ -132,8 +132,8 @@ human_rnaseq_dge_fit_coeff2_treat_top <- topTags(object = human_rnaseq_dge_fit_t
 plot(human_rnaseq_dge_fit_coeff2_qlft$table$logFC,
      -log10(human_rnaseq_dge_fit_coeff2_qlft$table$PValue),
      pch=20)
-points(human_rnaseq_dge_fit_coeff2_qlft_top_up$table$logFC,
-       -log10(human_rnaseq_dge_fit_coeff2_qlft_top_up$table$PValue),
+points(human_rnaseq_dge_fit_coeff2_qlft_top_lfclim$table$logFC,
+       -log10(human_rnaseq_dge_fit_coeff2_qlft_top_lfclim$table$PValue),
        col="red",pch=20)
 
 # plotMD
@@ -160,8 +160,8 @@ ensembl_annot$V2 <- sapply(ensembl_annot$V2,
 colnames(ensembl_annot) <- c("ensid","symbol")
 
 # obtain the symbols of the most differentially-expressed genes
-ens_names <- as.character(human_rnaseq_dge_fit_coeff2_lrt_top$table$genes)
-ens_names <- as.character(human_rnaseq_dge_fit_coeff2_qlft_top_up$table$genes)
+# ens_names <- as.character(human_rnaseq_dge_fit_coeff2_lrt_top$table$genes)
+ens_names <- as.character(human_rnaseq_dge_fit_coeff2_qlft_top_lfclim$table$genes)
 
 # split the given names
 ens_names_split <- sapply(ens_names,
@@ -193,33 +193,30 @@ matched_names_is_annotated <- sapply(matched_names,
 matched_names_annotated <- matched_names[matched_names_is_annotated]
 matched_names_annotated_df <- as.data.frame(do.call(rbind,matched_names_annotated))
 colnames(matched_names_annotated_df) <- "symbol"
-human_rnaseq_dge_fit_coeff2_qlft$dex_symbol <- matched_names_annotated_df #data.frame(symbols = matched_names)
-# match the annotations to the top-most genes
-# human_rnaseq_dge_fit_coeff2_lrt_top$table$symbol <- 
+human_rnaseq_dge_fit_coeff2_qlft_top_lfclim$dex_symbol <- matched_names_annotated_df #data.frame(symbols = matched_names)
+human_rnaseq_dge_fit_coeff2_qlft_top_lfclim$dex_ensg_symbol <- paste(rownames(matched_names_annotated_df),matched_names_annotated_df$symbol,sep = "_")
 
 ```
 
 Isolate the counts for the genes of interest
 ```{r}
-human_rnaseq_dge_fit_coeff2_qlft_top_counts <- human_rnaseq_dge_fit_coeff2_qlft$table
+temp_counts <- human_rnaseq_dge_fit$counts
+temp_counts <- temp_counts[rownames(temp_counts) %in% rownames(human_rnaseq_dge_fit_coeff2_qlft_top_lfclim$dex_symbol),]
+temp_counts_names <- sapply(rownames(temp_counts),
+                            function (x) {
+                              a.ind <- grep(pattern = x,x = human_rnaseq_dge_fit_coeff2_qlft_top_lfclim$dex_ensg_symbol)
+                              a <- human_rnaseq_dge_fit_coeff2_qlft_top_lfclim$dex_ensg_symbol[a.ind]
+                              a
+                            })
+rownames(temp_counts) <- unlist(temp_counts_names)
+human_rnaseq_dge_fit_coeff2_qlft_top_lfclim$counts <- temp_counts
+pheatmap(log2(temp_counts+1),
+         show_rownames = FALSE,
+         annotation_col = human_rnaseq_design,
+         show_colnames = FALSE)
 ```
 
-
-## goana
-
-```{r}
-# need to debug kegga
-golrt <- kegga(de = human_rnaseq_dge_fit_coeff2_qlft,geneid = human_rnaseq_dge_fit_coeff2_qlft$genes$genes)
-# de = human_rnaseq_dge_fit_coeff2_lrt,
-#               species="Hs")
-topGO(golrt)
-# why do pathways not overlap with the universe?
-```
-
-New from edgeR
-```{}
-human_rnaseq_dge_fit_coeff2_go <- goana(de = human_rnaseq_dge_fit_coeff2, species="Hs")
-```
+## GSVA
 
 Some helpful code notes
 ```
@@ -245,3 +242,222 @@ tfhdiff.Rmd:head(tcell.genesets.tfh.enrich.es)
 tfhdiff.Rmd:pheatmap(mat = tcell.genesets.tfh.enrich.es[,c(1:(ncol(tcell.genesets.tfh.enrich.es)-1))],
 vvv3@login04:~/pillaifolder/rmarkdown/tfh_diffn$
 ```
+
+```{r}
+# prepare for GSVA
+prepare_gsva()
+```
+
+```{r}
+# import some gene sets for GSVA
+kegg_genesets <- import_gmt(gmtfile = "../../referenceAnnot/genesets/hg38/msigdb_c2.cp.kegg_hsapiens.gmt")
+bp_genesets <- import_gmt(gmtfile = "../../referenceAnnot/genesets/hg38/msigdb_c5.bp_hsapiens.gmt")
+cancer_genesets <- import_gmt(gmtfile = "../../referenceAnnot/genesets/hg38/msigdb_c6_hsapiens.gmt")
+immune_genesets <- import_gmt(gmtfile = "../../referenceAnnot/genesets/hg38/msigdb_c7_hsapiens.gmt")
+# from the Li et al oncotarget 2014 paper
+interferon_genesets <- import_gmt(gmtfile = "../../referenceAnnot/genesets/hg38/custom/msigdb_interferon.gmt")
+cytochemokine_genesets <- import_gmt(gmtfile = "../../referenceAnnot/genesets/hg38/custom/msigdb_cytochemokine.gmt")
+inflammation_genesets <- import_gmt(gmtfile = "../../referenceAnnot/genesets/hg38/custom/msigdb_inflammation.gmt")
+antigen_genesets <- import_gmt(gmtfile = "../../referenceAnnot/genesets/hg38/custom/msigdb_antigen.gmt")
+# virus-related terms
+virus_genesets <- import_gmt(gmtfile = "../../referenceAnnot/genesets/hg38/custom/msigdb_virus.gmt")
+
+# hallmark sets--verified in microarrays
+hallmark_genesets <- import_gmt(gmtfile = "../../referenceAnnot/genesets/hg38/msigdb_hallmark_hsapiens.gmt")
+
+
+# import counts into gsva script
+human_rnaseq_dge_fit_coeff2_qlft_top_lfclim_gsva_counts <- import_counts(countsfile = human_rnaseq_dge_fit_coeff2_qlft_top_lfclim$counts,imported_counts = TRUE)
+# perform GSVA with KEGG
+human_rnaseq_dge_fit_coeff2_qlft_top_lfclim_kegg_enrich <- gsva_enrich(counts = human_rnaseq_dge_fit_coeff2_qlft_top_lfclim_gsva_counts$counts.aggregate,
+                                         geneset = kegg_genesets)
+# perform GSVA with Cancer pathways
+human_rnaseq_dge_fit_coeff2_qlft_top_lfclim_cancer_enrich <- gsva_enrich(counts = human_rnaseq_dge_fit_coeff2_qlft_top_lfclim_gsva_counts$counts.aggregate,
+                                         geneset = cancer_genesets)
+# perform GSVA with Immune pathways
+human_rnaseq_dge_fit_coeff2_qlft_top_lfclim_immune_enrich <- gsva_enrich(counts = human_rnaseq_dge_fit_coeff2_qlft_top_lfclim_gsva_counts$counts.aggregate,
+                                         geneset = immune_genesets)
+# perform GSVA with Immune pathways
+human_rnaseq_dge_fit_coeff2_qlft_top_lfclim_bp_enrich <- gsva_enrich(counts = human_rnaseq_dge_fit_coeff2_qlft_top_lfclim_gsva_counts$counts.aggregate,
+                                         geneset = bp_genesets)
+
+# perform GSVA with GO terms from Li et al Oncotarget
+interferon_enrich <- gsva_enrich(counts = human_rnaseq_dge_fit_coeff2_qlft_top_lfclim_gsva_counts$counts.aggregate,
+                                 geneset = interferon_genesets)
+cytochemokine_enrich <- gsva_enrich(counts = human_rnaseq_dge_fit_coeff2_qlft_top_lfclim_gsva_counts$counts.aggregate,
+                                 geneset = cytochemokine_genesets)
+inflammation_enrich <- gsva_enrich(counts = human_rnaseq_dge_fit_coeff2_qlft_top_lfclim_gsva_counts$counts.aggregate,
+                                 geneset = inflammation_genesets)
+antigen_enrich <- gsva_enrich(counts = human_rnaseq_dge_fit_coeff2_qlft_top_lfclim_gsva_counts$counts.aggregate,
+                                 geneset = antigen_genesets)
+
+# perform GSVA with viral terms
+virus_enrich <- gsva_enrich(counts = human_rnaseq_dge_fit_coeff2_qlft_top_lfclim_gsva_counts$counts.aggregate,
+                                 geneset = virus_genesets)
+
+# perform GSVA with hallmark terms
+hallmark_enrich <- gsva_enrich(counts = human_rnaseq_dge_fit_coeff2_qlft_top_lfclim_gsva_counts$counts.aggregate,
+                                 geneset = hallmark_genesets)
+
+
+
+```
+
+Compact naming of pathways
+```{r}
+name_pathway <- function(x) {
+  pathway_name <- sapply(x,
+                         function(y) {
+                           a <- unlist(strsplit(x = as.character(y),split = ":",fixed = TRUE))
+                           a[2]
+                         })
+  return(pathway_name)
+}
+```
+
+Set the terms of the signatures that we want
+```{r}
+# set li oncotarget terms
+li_oncotarget_terms <- paste("interferon",
+                             "cytokine",
+                             "inflammation",
+                             "influenza",
+                             "testes",
+                             "presentation",
+                             sep = "|")
+```
+
+Plot enrichment
+```{r}
+pheatmap(human_rnaseq_dge_fit_coeff2_qlft_top_lfclim_kegg_enrich,
+         annotation_col = human_rnaseq_design,
+         show_colnames = FALSE,
+         fontsize = 5.0,
+         main = "KEGG")
+pheatmap(human_rnaseq_dge_fit_coeff2_qlft_top_lfclim_cancer_enrich,
+         annotation_col = human_rnaseq_design,
+         show_colnames = FALSE,
+         fontsize = 5.0,
+         main = "Cancer")
+set.seed(0)
+kmeans_immune <- kmeans(x = human_rnaseq_dge_fit_coeff2_qlft_top_lfclim_immune_enrich,
+                        centers = 4)
+kmeans_immune_annot <- as.data.frame(sort(kmeans_immune$cluster))
+colnames(kmeans_immune_annot) <- c("cluster")
+
+human_rnaseq_dge_fit_coeff2_qlft_top_lfclim_immune_enrich <- human_rnaseq_dge_fit_coeff2_qlft_top_lfclim_immune_enrich[rownames(kmeans_immune_annot),]
+
+pheatmap(human_rnaseq_dge_fit_coeff2_qlft_top_lfclim_immune_enrich,
+         annotation_col = human_rnaseq_design,
+         annotation_row = kmeans_immune_annot,
+         cluster_rows = FALSE,
+         show_rownames = FALSE,
+         show_colnames = FALSE,
+         fontsize = 5.0,
+         main = "Immune")
+
+```
+
+```{r}
+# highlight the immunological GO_BP terms
+c5_bp_li_oncotarget <- grep(pattern = li_oncotarget_terms,x = rownames(human_rnaseq_dge_fit_coeff2_qlft_top_lfclim_bp_enrich),ignore.case = TRUE)
+c5_bp_not_li_oncotarget <- grep(pattern = li_oncotarget_terms,x = rownames(human_rnaseq_dge_fit_coeff2_qlft_top_lfclim_bp_enrich),ignore.case = TRUE,invert = TRUE)
+c5_bp_annot <- data.frame(li_oncotarget = c(rep("li_onco",length(c5_bp_li_oncotarget)),
+                                            rep("non_li_onco",length(c5_bp_not_li_oncotarget))))
+rownames(c5_bp_annot) <- c(rownames(human_rnaseq_dge_fit_coeff2_qlft_top_lfclim_bp_enrich)[c5_bp_li_oncotarget],
+                           rownames(human_rnaseq_dge_fit_coeff2_qlft_top_lfclim_bp_enrich)[c5_bp_not_li_oncotarget])
+#c5_bp_annot <- c5_bp_annot[order(c5_bp_annot$),]
+c5_bp_sorted <- human_rnaseq_dge_fit_coeff2_qlft_top_lfclim_bp_enrich[rownames(c5_bp_annot),]
+pheatmap(c5_bp_sorted,
+         annotation_col = human_rnaseq_design,
+         annotation_row = c5_bp_annot,
+         show_rownames = FALSE,
+         show_colnames = FALSE,
+         fontsize = 5.0,
+         main = "BP")
+
+```
+
+
+Enrichments for terms from Li et al 2014 and Chiappinelli et al 2015.
+```{r}
+
+pheatmap(interferon_enrich,
+         annotation_col = human_rnaseq_design,
+         labels_row = name_pathway(rownames(interferon_enrich)),
+         show_colnames = FALSE,
+         cluster_cols = TRUE,
+         fontsize = 3.0,
+         main = "Interferon GO Terms")
+pheatmap(cytochemokine_enrich,
+         annotation_col = human_rnaseq_design,
+         labels_row = name_pathway(rownames(cytochemokine_enrich)),
+         show_colnames = FALSE,fontsize = 5.0,
+         cluster_cols = FALSE,
+         main = "Cytokine/Chemokine GO Terms")
+pheatmap(inflammation_enrich,
+         annotation_col = human_rnaseq_design,
+         labels_row = name_pathway(rownames(inflammation_enrich)),
+         cluster_rows = FALSE,
+         cluster_cols = FALSE,
+         show_colnames = FALSE,
+         fontsize = 5.0,
+         main = "Inflammation GO terms")
+pheatmap(antigen_enrich,
+         annotation_col = human_rnaseq_design,
+         labels_row = name_pathway(rownames(antigen_enrich)),
+         show_rownames = TRUE,
+         fontsize = 3.0,
+         show_colnames = FALSE,
+         cluster_cols = FALSE,
+         main = "Antigen Presentation and Receptor GO Terms")
+pheatmap(virus_enrich,
+         annotation_col = human_rnaseq_design,
+         labels_row = name_pathway(rownames(virus_enrich)),
+         show_rownames = TRUE,fontsize = 5.0,
+         show_colnames = FALSE,
+         cluster_cols = FALSE,
+         fontsize_row = 3.0,
+         main = "Virus GO Terms")
+
+```
+
+The pathways are enriched!
+
+Hallmarks
+```{r}
+pheatmap(hallmark_enrich,
+         annotation_col = human_rnaseq_design,
+         labels_row = name_pathway(rownames(hallmark_enrich)),
+         show_rownames = TRUE,fontsize = 5.0,
+         show_colnames = FALSE,
+         cluster_cols = FALSE,
+         fontsize_row = 3.0,
+         main = "Virus GO Terms")
+
+```
+
+
+
+# Computing ERV-gene signature correlation
+
+Which gene signatures are most correlated with ERV expression? We want to come up with a different ERV-activation gene signature for this 
+
+# Scraps
+
+## goana
+
+```{}
+# need to debug kegga
+golrt <- kegga(de = human_rnaseq_dge_fit_coeff2_qlft,geneid = human_rnaseq_dge_fit_coeff2_qlft$genes$genes)
+# de = human_rnaseq_dge_fit_coeff2_lrt,
+#               species="Hs")
+topGO(golrt)
+# why do pathways not overlap with the universe?
+```
+
+New from edgeR
+```{}
+human_rnaseq_dge_fit_coeff2_go <- goana(de = human_rnaseq_dge_fit_coeff2, species="Hs")
+```
+
