@@ -1,0 +1,63 @@
+---
+title: "Sheng and LaFleur 2018 RNA-seq reanalysis"
+output: html_notebook
+---
+
+Sheng and LaGleur used RNA-seq. They aligned their data using STAR to hg19 (it appears ENSEMBL, judging from the gene names given), yielding Integer counts. They did differential expression analysis using edgeR. 
+
+The RNA-seq methods description from their methods
+
+```
+Raw reads were aligned to hg19 or mm9 using STAR (v2.4.2a) with the parameter ‘‘quantMode’’ set as ‘‘GeneCounts’’ to produce count table for each gene. Differential gene analysis was performed on gene raw counts in R with edgeR package (v3.18.1) from bio- conductor. Read count table was filtered so that genes with at least one count across conditions were kept. The negative binomial generalized log-linear model was used in differential analysis. A FDR cut-off of 0.05 was used to determine significantly differentially expressed genes. The R package gProfileR (v0.6.4) was used to perform gene enrichment analysis on differential genes. Gene set enrichment analysis (GSEA) was performed with R package clusterProfiler (v3.4.4).
+The function analyzeRepeats.pl from Homer (http://homer.ucsd.edu/homer/) software was used to get raw counts for repeats from RNA-seq data. Differential expression for repeats was performed with edgeR the same way as for genes.
+```
+
+This notebook depicts the re-analysis of human data
+
+# Setup
+```{r setup}
+install.packages("readxl")
+library(readxl)
+source("https://bioconductor.org/biocLite.R")
+biocLite("Biobase")
+biocLite("GEOquery")
+biocLite("limma")
+biocLite("edgeR")
+biocLite("gProfileR")
+biocLite("GSVA")
+source("../../pipelines/gsva_script.R")
+```
+
+# import datasets
+
+TO BE DONE
+
+# edgeR analysis
+
+
+# Running GSVA analysis
+
+Some helpful code notes
+```
+vvv3@login04:~/pillaifolder/rmarkdown/tfh_diffn$ grep -s "gsva" *.Rmd
+ranking_enhancerCluster_genes.Rmd:                             "pipelines/transcriptomics_pipeline/gsea/gsva_script.R"),
+tfhdiff.Rmd:source("pipelines/transcriptomics_pipeline/gsea/gsva_script.R")
+tfhdiff.Rmd:prepare_gsva()
+tfhdiff.Rmd:tcell.genesets.tfh.enrich <- gsva_enrich(counts = tcell.enrich.counts$counts.aggregate,geneset = tcell.genesets)
+vvv3@login04:~/pillaifolder/rmarkdown/tfh_diffn$ grep -s "tcell.genesets" *.Rmd
+tfhdiff.Rmd:tcell.genesets <- import_gmt(gmtfile = "referenceAnnotation/hg38/genesets/msigdb/custom/msigdb_tcell_genesets.gmt")
+tfhdiff.Rmd:tcell.genesets.tfh.enrich <- gsva_enrich(counts = tcell.enrich.counts$counts.aggregate,geneset = tcell.genesets)
+tfhdiff.Rmd:#colnames(tcell.genesets.tfh.enrich$es.obs) <- c("CD4naive","PD1loCXCR5pos","PD1intCXCR5pos","PD1hiCXCR5hi")
+tfhdiff.Rmd:tcell.genesets.tfh.enrich.es.kmeans <- kmeans_intervals(matrix = tcell.genesets.tfh.enrich$es.obs,kmax = 5,B=50)
+tfhdiff.Rmd:tcell.genesets.tfh.enrich.es <- as.data.frame(tcell.genesets.tfh.enrich$es.obs)
+tfhdiff.Rmd:tcell.genesets.tfh.enrich.es$k.choice <- tcell.genesets.tfh.enrich.es.kmeans$matrix.kmeans$kmeans
+tfhdiff.Rmd:length(tcell.genesets.tfh.enrich.es$k.choice)
+tfhdiff.Rmd:dim(tcell.genesets.tfh.enrich.es)
+tfhdiff.Rmd:tcell.genesets.tfh.enrich.es <- tcell.genesets.tfh.enrich.es[order(tcell.genesets.tfh.enrich.es$k.choice),]
+tfhdiff.Rmd:#enrichments <- tcell.genesets.tfh.enrich$es.obs[sort(tcell.genesets.tfh.enrich.es.kmeans$matrix.kmeans$kmeans),]
+tfhdiff.Rmd:rowannotation.ssgsea <- data.frame(kchoice = as.factor(sort(tcell.genesets.tfh.enrich.es.kmeans$matrix.kmeans$kmeans)))
+tfhdiff.Rmd:#rowannotation.ssgsea <- data.frame(kchoice = as.factor(tcell.genesets.tfh.enrich.es.kmeans$matrix.kmeans$kmeans))
+tfhdiff.Rmd:head(tcell.genesets.tfh.enrich.es)
+tfhdiff.Rmd:pheatmap(mat = tcell.genesets.tfh.enrich.es[,c(1:(ncol(tcell.genesets.tfh.enrich.es)-1))],
+vvv3@login04:~/pillaifolder/rmarkdown/tfh_diffn$
+```
