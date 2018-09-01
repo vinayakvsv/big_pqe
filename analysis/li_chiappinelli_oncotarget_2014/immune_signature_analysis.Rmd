@@ -544,7 +544,6 @@ library(pheatmap)
 pheatmap(design,show_rownames = FALSE)
 ```
 
+Methylation analysis will be done in the "extended" analysis
 
-Do I also have to do the demethylation analysis?
-
-
+# GSVA analysis

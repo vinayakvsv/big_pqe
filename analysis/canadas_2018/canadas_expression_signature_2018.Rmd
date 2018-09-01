@@ -202,12 +202,14 @@ points(tT_canadas_sig_up_h69m$logFC,
      #col=as.factor(tT_canadas_subset$adj.P.Val <= alpha & tT_canadas_subset$logFC >= log2fc_lim))
 
 tT_canadas_sig_up_h69m_in_sem <- subset(tT_canadas_sig_up_h69m,GENE_SYMBOL %in% canadas_topgenes_sem_up)
-tT_canadas_sig_in_sem <- subset(tT_canadas_subset,GENE_SYMBOL %in% canadas_topgenes_sem_up | GENE_SYMBOL %in% canadas_topgenes_sem_down)
+tT_canadas_sig_up_in_sem <- subset(tT_canadas_subset,GENE_SYMBOL %in% canadas_topgenes_sem_up)
+  #subset(tT_canadas_subset,GENE_SYMBOL %in% canadas_topgenes_sem_up | GENE_SYMBOL %in% canadas_topgenes_sem_down)
 
-points(tT_canadas_sig_in_sem$logFC,
-       -log10(tT_canadas_sig_in_sem$adj.P.Val),
+points(tT_canadas_sig_up_in_sem$logFC,
+       -log10(tT_canadas_sig_up_in_sem$adj.P.Val),
        pch=20,
        col="orange")
+
 
 abline(h = -log10(alpha),
        v = log2fc_lim,
@@ -223,9 +225,7 @@ Heatmap:
 # gene annotation
 gene_annot <- data.frame(sig_up_h69m = as.factor(tT_canadas_subset$GENE_SYMBOL %in% tT_canadas_sig_up_h69m$GENE_SYMBOL),
                          sig_up_h69m_and_sem = as.factor(tT_canadas_subset$GENE_SYMBOL %in% tT_canadas_sig_up_h69m_in_sem$GENE_SYMBOL),
-                         sig_up_sem = as.factor(tT_canadas_subset$GENE_SYMBOL %in% tT_canadas_sig_in_sem$GENE_SYMBOL))
-gene_annot <- data.frame(sig_up_h69m_and_sem = as.factor(tT_canadas_subset$GENE_SYMBOL %in% tT_canadas_sig_up_h69m_in_sem$GENE_SYMBOL),
-                         sig_up_sem = as.factor(tT_canadas_subset$GENE_SYMBOL %in% tT_canadas_sig_in_sem$GENE_SYMBOL))
+                         sig_up_sem = as.factor(tT_canadas_subset$GENE_SYMBOL %in% tT_canadas_sig_up_in_sem$GENE_SYMBOL))
 
 rownames(gene_annot) <- tT_canadas_subset$ID
 
@@ -241,10 +241,24 @@ gene_annot_sig <- gene_annot[rownames(gene_annot) %in% rownames(gset_canadas_trs
 # heatmap
 pheatmap(gset_canadas_trsf_hmap_sig,
          annotation_col = sample_annot,
-         annotation_row = gene_annot,
+         annotation_row = gene_annot_sig,
          show_rownames = FALSE,
          show_colnames = FALSE)
+
+# how many genes are in theirs but not mine?
+# genes that are significant to them but not to me
+
+gene_annot_up_sem_uniq <- subset(gene_annot,sig_up_sem == TRUE & sig_up_h69m == FALSE)
+print(paste("They report",nrow(gene_annot_up_sem_uniq),"probes as significantly-upregulated in H69M that I do not"))
+
+n_gene_annot_up_mine_uniq <- dim(tT_canadas_sig_up_h69m[!tT_canadas_sig_up_h69m$ID %in% tT_canadas_sig_up_in_sem$ID,])
+
+print(paste("I report",n_gene_annot_up_mine_uniq,"probes as significantly-upregulated in H69M that they do not"))
+
 ```
 
 Fair concordance between my analysis and theirs. 
 
+# GSVA analysis
+
+Now, we will examine gene sets
