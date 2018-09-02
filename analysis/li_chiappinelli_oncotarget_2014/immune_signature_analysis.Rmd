@@ -580,4 +580,30 @@ Methylation analysis will be done in the "extended" analysis
 
 # GSVA analysis
 
+## Setup GSVA
+Prepare gsva
+```{r}
+prepare_gsva()
+```
+
+Gene set imports
+```{r}
+# import some gene sets for GSVA
+kegg_genesets <- import_gmt(gmtfile = "../../referenceAnnot/genesets/hg38/msigdb_c2.cp.kegg_hsapiens.gmt")
+bp_genesets <- import_gmt(gmtfile = "../../referenceAnnot/genesets/hg38/msigdb_c5.bp_hsapiens.gmt")
+cancer_genesets <- import_gmt(gmtfile = "../../referenceAnnot/genesets/hg38/msigdb_c6_hsapiens.gmt")
+immune_genesets <- import_gmt(gmtfile = "../../referenceAnnot/genesets/hg38/msigdb_c7_hsapiens.gmt")
+# from the Li et al oncotarget 2014 paper
+interferon_genesets <- import_gmt(gmtfile = "../../referenceAnnot/genesets/hg38/custom/msigdb_interferon.gmt")
+cytochemokine_genesets <- import_gmt(gmtfile = "../../referenceAnnot/genesets/hg38/custom/msigdb_cytochemokine.gmt")
+inflammation_genesets <- import_gmt(gmtfile = "../../referenceAnnot/genesets/hg38/custom/msigdb_inflammation.gmt")
+antigen_genesets <- import_gmt(gmtfile = "../../referenceAnnot/genesets/hg38/custom/msigdb_antigen.gmt")
+# virus-related terms
+virus_genesets <- import_gmt(gmtfile = "../../referenceAnnot/genesets/hg38/custom/msigdb_virus.gmt")
+
+# hallmark sets--verified in microarrays
+hallmark_genesets <- import_gmt(gmtfile = "../../referenceAnnot/genesets/hg38/msigdb_hallmark_hsapiens.gmt")
+```
+
+
 # ERV analysis
