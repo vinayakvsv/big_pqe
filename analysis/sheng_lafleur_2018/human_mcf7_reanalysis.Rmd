@@ -675,14 +675,6 @@ write.table(x = ifn_viral_signature_table,
 
 ```
 
-# Computing ERV-gene signature correlation
-
-Which gene signatures are most correlated with ERV expression? We want to come up with a different ERV-activation gene signature for this 
-
-```{}
-```
-
-
 
 # Scraps
 
