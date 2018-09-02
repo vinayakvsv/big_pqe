@@ -119,6 +119,8 @@ human_rnaseq_dge_fit_coeff2_qlft_top <- topTags(human_rnaseq_dge_fit_coeff2_qlft
                                                 adjust.method = "BH",sort.by = "logFC")
 human_rnaseq_dge_fit_coeff2_qlft_top_lfclim <- human_rnaseq_dge_fit_coeff2_qlft_top
 human_rnaseq_dge_fit_coeff2_qlft_top_lfclim$table <- subset(human_rnaseq_dge_fit_coeff2_qlft_top$table,abs(logFC) > logFC_edgeR_lim)
+# human_rnaseq_dge_fit_coeff2_qlft_top_lfclim$table <- subset(human_rnaseq_dge_fit_coeff2_qlft_top$table,logFC > logFC_edgeR_lim)
+
 human_rnaseq_dge_fit_coeff2_lrt_top <- topTags(object = human_rnaseq_dge_fit_coeff2_lrt,
                                                p.value = pval_cutoff,
                                                n = n_toptag,
@@ -384,20 +386,21 @@ Enrichments for terms from Li et al 2014 and Chiappinelli et al 2015.
 
 pheatmap(interferon_enrich,
          annotation_col = human_rnaseq_design,
-         labels_row = name_pathway(rownames(interferon_enrich)),
+         labels_row = rownames(interferon_enrich),
          show_colnames = FALSE,
          cluster_cols = TRUE,
-         fontsize = 3.0,
+         fontsize = 2.5,
          main = "Interferon GO Terms")
 pheatmap(cytochemokine_enrich,
          annotation_col = human_rnaseq_design,
-         labels_row = name_pathway(rownames(cytochemokine_enrich)),
-         show_colnames = FALSE,fontsize = 5.0,
+         labels_row = rownames(cytochemokine_enrich),
+         show_colnames = FALSE,
+         fontsize = 5.0,
          cluster_cols = FALSE,
          main = "Cytokine/Chemokine GO Terms")
 pheatmap(inflammation_enrich,
          annotation_col = human_rnaseq_design,
-         labels_row = name_pathway(rownames(inflammation_enrich)),
+         labels_row = rownames(inflammation_enrich),
          cluster_rows = FALSE,
          cluster_cols = FALSE,
          show_colnames = FALSE,
@@ -405,43 +408,281 @@ pheatmap(inflammation_enrich,
          main = "Inflammation GO terms")
 pheatmap(antigen_enrich,
          annotation_col = human_rnaseq_design,
-         labels_row = name_pathway(rownames(antigen_enrich)),
+         labels_row = rownames(antigen_enrich),
          show_rownames = TRUE,
-         fontsize = 3.0,
+         fontsize = 4.0,
          show_colnames = FALSE,
          cluster_cols = FALSE,
          main = "Antigen Presentation and Receptor GO Terms")
 pheatmap(virus_enrich,
          annotation_col = human_rnaseq_design,
-         labels_row = name_pathway(rownames(virus_enrich)),
-         show_rownames = TRUE,fontsize = 5.0,
+         labels_row = rownames(virus_enrich),
+         show_rownames = TRUE,
          show_colnames = FALSE,
          cluster_cols = FALSE,
-         fontsize_row = 3.0,
+         fontsize_row = 2.5,
          main = "Virus GO Terms")
 
 ```
 
-The pathways are enriched!
 
 Hallmarks
 ```{r}
 pheatmap(hallmark_enrich,
          annotation_col = human_rnaseq_design,
-         labels_row = name_pathway(rownames(hallmark_enrich)),
-         show_rownames = TRUE,fontsize = 5.0,
+         labels_row = rownames(hallmark_enrich),
+         show_rownames = TRUE,
          show_colnames = FALSE,
          cluster_cols = FALSE,
-         fontsize_row = 3.0,
-         main = "Virus GO Terms")
+         fontsize_row = 5.0,
+         main = "Hallmark GO Terms")
 
 ```
 
 
+We see some pathway enrichments.
+
+# Replication of Sheng and LaFleur's gene signature
+
+In the Sheng and LaFleur paper, the following procedure was used to get the ERV signature:
+
+```
+For analyzing LSD1 expression level versus IFN signature, genes were extracted from ‘virus’ and ‘interferon’ related terms of the biological pathways enriched in upregulated genes upon LSD1 KD in MCF7 cells. These genes were further filtered for those that are upregulated in KD condition to obtain a refined IFN signature gene list. Gene-wise z-score was calculated in each tumor type and the sum of genes in the refined IFN signature gene list was used to characterize IFN signature. Pearson’s correlation was used to evaluate the correlation of LSD1 level (z-score) and IFN signature
+```
+
+## Extract the 'virus' and 'interferon' signatures with strongest upregulation in shLSD1
+
+Let's divide the "interferon" GSVA analysis further. 
+
+```{r}
+
+set.seed(0)
+# should do a gap-statistic calculation
+kmeans_interferon <- kmeans(x = interferon_enrich,
+                            centers = 4)
+
+kmeans_interferon_annot <- as.data.frame(sort(kmeans_interferon$cluster))
+colnames(kmeans_interferon_annot) <- c("cluster")
+
+interferon_enrich <- interferon_enrich[rownames(kmeans_interferon_annot),]
+
+pheatmap(interferon_enrich,
+         annotation_col = human_rnaseq_design,
+         annotation_row = kmeans_interferon_annot,
+         cluster_rows = FALSE,
+         cluster_cols = FALSE,
+         show_colnames = FALSE,
+         fontsize = 3.0,
+         main = "Interferon")
+
+```
+
+
+Specifically, let's look at the cluster with largely uniform increased expression of the pathways in the shLSD1 cases
+```{r split_ifn}
+chosen_ifn_k <- 1
+interferon_enrich_subset <- interferon_enrich[rownames(subset(kmeans_interferon_annot,cluster %in% c(chosen_ifn_k))),]
+
+pheatmap(interferon_enrich_subset,
+         annotation_col = human_rnaseq_design,
+         annotation_row = kmeans_interferon_annot,
+         cluster_rows = FALSE,
+         show_colnames = FALSE,
+         fontsize = 5.0,
+         main = "Interferon, enriched")
+
+```
+
+
+Let's do the same with the viral signatures
+```{r split_viral}
+
+set.seed(0)
+# should do a gap-statistic calculation
+kmeans_viral <- kmeans(x = virus_enrich,
+                       centers = 4)
+
+kmeans_viral_annot <- as.data.frame(sort(kmeans_viral$cluster))
+colnames(kmeans_viral_annot) <- c("cluster")
+
+virus_enrich <- virus_enrich[rownames(kmeans_viral_annot),]
+
+pheatmap(virus_enrich,
+         annotation_col = human_rnaseq_design,
+         annotation_row = kmeans_viral_annot,
+         cluster_rows = FALSE,
+         show_colnames = FALSE,
+         fontsize = 3.0,
+         main = "Interferon")
+```
+
+```{r}
+chosen_viral_k <- 4
+viral_enrich_subset <- virus_enrich[rownames(subset(kmeans_viral_annot,cluster %in% c(chosen_viral_k))),]
+
+pheatmap(viral_enrich_subset,
+         annotation_col = human_rnaseq_design,
+         annotation_row = kmeans_viral_annot,
+         cluster_rows = FALSE,
+         show_colnames = FALSE,
+         fontsize = 5.0,
+         main = "Viral")
+
+```
+
+
+Let's test if the enrichment differences between one set of samples and another for this cluster are significant. For this, we will bootstrap a set of enrichment values from the samples for each signature and construct a distribution of the differences in mean enrichment. 
+```{r}
+# virus
+random_sig <- apply(X = virus_enrich,
+                    MARGIN = 1,
+                    function(x) {
+                      set.seed(0)
+                      a <- sample(x = x,size = length(x),replace = TRUE)
+                      mean(a[3:4]) - mean(a[1:2])
+                    })
+hist(random_sig)
+q_cutoffs <- c(mean(random_sig) - sd(random_sig)*qnorm(p = 0.025),
+               mean(random_sig) + sd(random_sig)*qnorm(p = 0.025))
+abline(v = q_cutoffs,
+       lty=2,
+       col="red")
+# plot each of the other
+test_sig <- apply(X = virus_enrich,
+                  MARGIN = 1,
+                  function(x) {
+                    a <- mean(x[3:4]) - mean(x[1:2])
+                    a_col <- "grey"
+                    if (a >= q_cutoffs[1] | a <= q_cutoffs[2]) {
+                      a_col <- "pink"
+                    }
+                    abline(v = a,col = a_col,lty=3)
+                    a >= q_cutoffs[1] | a <= q_cutoffs[2]
+                    })
+
+kmeans_viral_annot$sig_boot <- as.factor(test_sig)
+pheatmap(virus_enrich,
+         annotation_col = human_rnaseq_design,
+         annotation_row = kmeans_viral_annot,
+         cluster_rows = FALSE,
+         show_colnames = FALSE,
+         fontsize = 3.0,
+         main = "Virus")
+
+# interferon
+random_sig <- apply(X = interferon_enrich,
+                    MARGIN = 1,
+                    function(x) {
+                      set.seed(0)
+                      a <- sample(x = x,size = length(x),replace = TRUE)
+                      mean(a[3:4]) - mean(a[1:2])
+                    })
+hist(random_sig)
+q_cutoffs <- c(mean(random_sig) - sd(random_sig)*qnorm(p = 0.025),
+               mean(random_sig) + sd(random_sig)*qnorm(p = 0.025))
+abline(v = q_cutoffs,
+       lty=2,
+       col="red")
+# plot each of the other
+test_sig <- apply(X = interferon_enrich,
+                  MARGIN = 1,
+                  function(x) {
+                    a <- mean(x[3:4]) - mean(x[1:2])
+                    a_col <- "grey"
+                    if (a >= q_cutoffs[1] | a <= q_cutoffs[2]) {
+                      a_col <- "pink"
+                    }
+                    abline(v = a,col = a_col,lty=3)
+                    a >= q_cutoffs[1] | a <= q_cutoffs[2]
+                    })
+
+kmeans_interferon_annot$sig_boot <- as.factor(test_sig)
+pheatmap(interferon_enrich,
+         annotation_col = human_rnaseq_design,
+         annotation_row = kmeans_interferon_annot,
+         cluster_rows = FALSE,
+         show_colnames = FALSE,
+         fontsize = 3.0,
+         main = "Interferon")
+
+
+
+```
+
+Good; all of the signatures in the desired clusters have significant mean enrichment changes. 
+
+## Extract the DEX genes in the upregulated 'virus' and 'interferon'
+
+Combine the gene sets in the desired clusters
+```{r}
+viral_enriched_gos <- subset(kmeans_viral_annot,cluster %in% chosen_viral_k)
+ifn_enriched_gos <- subset(kmeans_interferon_annot,cluster %in% chosen_ifn_k)
+enriched_sig_gos <- unique(c(rownames(viral_enriched_gos),
+                          rownames(ifn_enriched_gos))) # since there is some overlap
+```
+
+Identify the genes in the enriched, significantly-expressed GO terms
+```{r}
+# template dataset
+all_viral_ifn_gos <- unique(do.call(c,list(virus_genesets,interferon_genesets)))
+names(all_viral_ifn_gos) <- unique(c(names(virus_genesets),names(interferon_genesets)))
+all_viral_ifn_gos <- all_viral_ifn_gos[names(all_viral_ifn_gos) %in% enriched_sig_gos]
+all_viral_ifn_genes <- unique(unlist(all_viral_ifn_gos))
+```
+
+Obtain the differentially-expressed genes (from the sequencing experiment) that are present in these genes
+```{r get_signature}
+# get ifn and viral genes
+dex_genes <- human_rnaseq_dge_fit_coeff2_qlft_top_lfclim$dex_symbol
+ifn_viral_genes <- subset(dex_genes,symbol %in% all_viral_ifn_genes)
+
+# get those genes that are upregulated
+# also impose a logCPM count limit of at least 0
+upreg <- subset(human_rnaseq_dge_fit_coeff2_qlft_top_lfclim$table,
+                logFC > logFC_edgeR_lim & logCPM >= 0)
+upreg <- subset(human_rnaseq_dge_fit_coeff2_qlft_top_lfclim$table,
+                logFC > logFC_edgeR_lim)
+
+upreg_genes <- human_rnaseq_dge_fit_coeff2_qlft_top_lfclim$dex_symbol[rownames(human_rnaseq_dge_fit_coeff2_qlft_top_lfclim$dex_symbol) %in% upreg$genes,]
+upreg_genes <- unlist(upreg_genes)
+
+ifn_viral_signature <- subset(ifn_viral_genes,symbol %in% upreg_genes)
+
+temp_aggregate_counts <- human_rnaseq_dge_fit_coeff2_qlft_top_lfclim_gsva_counts$counts.aggregate
+ifn_viral_signature_counts <- temp_aggregate_counts[rownames(temp_aggregate_counts) %in% ifn_viral_signature$symbol,]
+pheatmap(log2(ifn_viral_signature_counts+1),
+         show_rownames = FALSE,
+         annotation_col = human_rnaseq_design,
+         show_colnames = FALSE)
+
+# plot distribution of signature fold changes
+ifn_viral_signature_table <- subset(human_rnaseq_dge_fit_coeff2_qlft_top_lfclim$table,genes %in% rownames(ifn_viral_signature))
+
+hist(ifn_viral_signature_table$logCPM)
+hist(ifn_viral_signature_table$logFC)
+
+```
+
+Save this signature
+
+```{r}
+write.table(x = ifn_viral_signature,
+            file = "ifn_viral_signature_shenglafleur_hs.txt",
+            quote = FALSE,sep = "\t",row.names = TRUE,col.names = TRUE)
+write.table(x = ifn_viral_signature_table,
+            file = "ifn_viral_signature_table_shenglafleur_hs.txt",
+            quote = FALSE,sep = "\t",row.names = TRUE,col.names = TRUE)
+
+```
 
 # Computing ERV-gene signature correlation
 
 Which gene signatures are most correlated with ERV expression? We want to come up with a different ERV-activation gene signature for this 
+
+```{}
+```
+
+
 
 # Scraps
 
