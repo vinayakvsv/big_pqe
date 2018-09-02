@@ -689,21 +689,5 @@ write.table(x = ifn_viral_signature_table,
 ```
 
 
-# Scraps
-
-## goana
-
-```{}
-# need to debug kegga
-golrt <- kegga(de = human_rnaseq_dge_fit_coeff2_qlft,geneid = human_rnaseq_dge_fit_coeff2_qlft$genes$genes)
-# de = human_rnaseq_dge_fit_coeff2_lrt,
-#               species="Hs")
-topGO(golrt)
-# why do pathways not overlap with the universe?
-```
-
-New from edgeR
-```{}
-human_rnaseq_dge_fit_coeff2_go <- goana(de = human_rnaseq_dge_fit_coeff2, species="Hs")
-```
+# ERV analysis
 
