@@ -122,7 +122,7 @@ Perform tests
 
 LSD1 KO vs Ctrl
 ```{r}
-qval_cutoff <- 0.05
+pval_cutoff <- 0.05
 n_toptag <- 10000
 logFC_edgeR_lim <- 1
 # LSD KO vs Ctrl
@@ -132,10 +132,10 @@ mouse_rnaseq_dge_fit_lrt_KO <- glmLRT(mouse_rnaseq_dge_fit,
 
 mouse_rnaseq_dge_fit_lrt_KO_top <- topTags(mouse_rnaseq_dge_fit_lrt_KO,
                                            n = 100000,
-                                           adjust.method = "fdr")
+                                           adjust.method = "BH")
 mouse_rnaseq_dge_fit_lrt_KO_top_up <- mouse_rnaseq_dge_fit_lrt_KO_top
 mouse_rnaseq_dge_fit_lrt_KO_top_up$table <- subset(mouse_rnaseq_dge_fit_lrt_KO_top$table,
-                                                logFC > logFC_edgeR_lim & FDR < qval_cutoff)
+                                                abs(logFC) > logFC_edgeR_lim & PValue <= pval_cutoff) # FDR <= pval_cutoff
 # mouse_rnaseq_dge_fit_qlf_KO_top$table <- subset(mouse_rnaseq_dge_fit_qlf_KO_top$table,PValue < pval_cutoff & logFC > logFC_edgeR_lim)
  
 plot(x = mouse_rnaseq_dge_fit_lrt_KO_top$table$logFC,
@@ -151,6 +151,32 @@ points(x = mouse_rnaseq_dge_fit_lrt_KO_top_up$table$logFC,
 ```
 
 
+Try again with contrast matrix
+```{r}
+CvsKO <- c(-1,1,0)
+KOvsC <- c(1,-1,0)
+KOvsC_mat <- matrix(data = c(KOvsC,CvsKO),nrow = 3,ncol = 2)
+mouse_rnaseq_dge_fit_lrt_KO_test <- glmLRT(mouse_rnaseq_dge_fit,contrast = KOvsC_mat)
+
+plot(mouse_rnaseq_dge_fit_lrt_KO_test$table$logFC.1,
+     -log10(mouse_rnaseq_dge_fit_lrt_KO_test$table$PValue),
+     xlim=c(-40,40))
+points(mouse_rnaseq_dge_fit_lrt_KO_test$table$logFC.2,
+     -log10(mouse_rnaseq_dge_fit_lrt_KO_test$table$PValue),
+     xlim=c(-40,40))
+
+mouse_rnaseq_dge_fit_lrt_KO_test_top <- topTags(object = mouse_rnaseq_dge_fit_lrt_KO_test,n = 10000,
+                                                adjust.method = "fdr",p.value = 0.05)
+
+points(mouse_rnaseq_dge_fit_lrt_KO_test_top$table$logFC.1,
+     -log10(mouse_rnaseq_dge_fit_lrt_KO_test_top$table$PValue),col="red")
+points(mouse_rnaseq_dge_fit_lrt_KO_test_top$table$logFC.2,
+     -log10(mouse_rnaseq_dge_fit_lrt_KO_test_top$table$PValue),col="blue")
+
+```
+
+Mirrors the images. Let's not use this...
+
 DKO vs Ctrl
 ```{r}
 pval_cutoff <- 0.05
@@ -163,10 +189,10 @@ mouse_rnaseq_dge_fit_lrt_DKO <- glmLRT(mouse_rnaseq_dge_fit,
 
 mouse_rnaseq_dge_fit_lrt_DKO_top <- topTags(mouse_rnaseq_dge_fit_lrt_DKO,
                                            n = 100000,
-                                           adjust.method = "fdr")
+                                           adjust.method = "BH")
 mouse_rnaseq_dge_fit_lrt_DKO_top_up <- mouse_rnaseq_dge_fit_lrt_DKO_top
 mouse_rnaseq_dge_fit_lrt_DKO_top_up$table <- subset(mouse_rnaseq_dge_fit_lrt_DKO_top$table,
-                                                logFC > logFC_edgeR_lim & FDR < qval_cutoff)
+                                                abs(logFC) > logFC_edgeR_lim & PValue <= pval_cutoff) #  & FDR <= pval_cutoff
 
 plot(x = mouse_rnaseq_dge_fit_lrt_DKO_top$table$logFC,
      y = -log10(mouse_rnaseq_dge_fit_lrt_DKO_top$table$FDR),
@@ -185,8 +211,35 @@ Visualize the heatmaps
 ```{r}
 mm_dex_gene_names <- unique(c(rownames(mouse_rnaseq_dge_fit_lrt_KO_top_up$table),
                            rownames(mouse_rnaseq_dge_fit_lrt_DKO_top_up$table)))
-mouse_rnaseq_filt_dex <- mouse_rnaseq_filt[rownames(mouse_rnaseq_filt) %in% mm_dex_gene_names,]
+mouse_rnaseq_filt_dex <- mouse_rnaseq_filt[rownames(mouse_rnaseq_filt) %in% toupper(mm_dex_gene_names),]
 pheatmap(mat = log2(mouse_rnaseq_filt_dex+1),
+         show_colnames = FALSE,
+         fontsize = 5.0,
+         cluster_cols = FALSE,
+         annotation_col = mouse_rnaseq_design[,c(2,3)])
+
+# show all HLA signatures
+mouse_rnaseq_filt_h2 <- mouse_rnaseq_filt[grep(pattern = "H2-",x = rownames(mouse_rnaseq_filt)),]
+pheatmap(mat = log2(mouse_rnaseq_filt_h2+1),
+         show_colnames = FALSE,
+         fontsize = 5.0,
+         annotation_col = mouse_rnaseq_design[,c(2,3)])
+
+# get the counts specific to KO-vs-Ctrl
+
+mouse_rnaseq_design_koc <- mouse_rnaseq_design[grep(pattern = "DKO",x = mouse_rnaseq_design$treatment,invert = TRUE),]
+mouse_rnaseq_filt_dex_koc <- mouse_rnaseq_filt_dex[rownames(mouse_rnaseq_filt_dex) %in% toupper(rownames(mouse_rnaseq_dge_fit_lrt_KO_top_up)),rownames(mouse_rnaseq_design_koc)]
+mouse_rnaseq_design_dkoc <- mouse_rnaseq_design[grep(pattern = "_KO",x = mouse_rnaseq_design$treatment,invert = TRUE),]
+mouse_rnaseq_filt_dex_dkoc <- mouse_rnaseq_filt_dex[rownames(mouse_rnaseq_filt_dex) %in% toupper(rownames(mouse_rnaseq_dge_fit_lrt_DKO_top_up)),rownames(mouse_rnaseq_design_dkoc)]
+
+# heatmaps
+pheatmap(mat = log2(mouse_rnaseq_filt_dex_koc+1),
+         show_colnames = FALSE,
+         fontsize = 5.0,
+         cluster_cols = FALSE,
+         annotation_col = mouse_rnaseq_design[,c(2,3)])
+
+pheatmap(mat = log2(mouse_rnaseq_filt_dex_dkoc+1),
          show_colnames = FALSE,
          fontsize = 5.0,
          cluster_cols = FALSE,
@@ -237,15 +290,32 @@ mm_c6_genesets <- import_gmt(gmtfile = "../../referenceAnnot/genesets/mm10/msigd
 mm_c7_genesets <- import_gmt(gmtfile = "../../referenceAnnot/genesets/mm10/msigdb_c7_mmusculus.gmt")
 
 # capitalize the gene sets
+rownames(mouse_rnaseq_filt) <- toupper(rownames(mouse_rnaseq_filt))
 rownames(mouse_rnaseq_filt_dex) <- toupper(rownames(mouse_rnaseq_filt_dex))
 
 # perform GSVA with GO terms from Li et al Oncotarget
-mm_c2_genesets_enrich <- gsva_enrich(counts = mouse_rnaseq_filt_dex,
+mm_c2_genesets_enrich <- gsva_enrich(counts = mouse_rnaseq_filt_dex_dkoc,
                                  geneset = mm_c2_genesets)
-mm_c6_genesets_enrich <- gsva_enrich(counts = mouse_rnaseq_filt_dex,
+mm_c6_genesets_enrich <- gsva_enrich(counts = mouse_rnaseq_filt_dex_dkoc,
                                  geneset = mm_c6_genesets)
-mm_c7_genesets_enrich <- gsva_enrich(counts = mouse_rnaseq_filt_dex,
+mm_c7_genesets_enrich <- gsva_enrich(counts = mouse_rnaseq_filt_dex_dkoc,
                                  geneset = mm_c7_genesets)
+mm_c5_bp_enrich <- gsva_enrich(counts = mouse_rnaseq_filt_dex_dkoc,
+                               geneset = bp_genesets)
+
+# perform GSVA with Li oncotarget signatures
+mm_interferon_enrich <- gsva_enrich(counts = mouse_rnaseq_filt_dex_koc,
+                                 geneset = interferon_genesets)
+mm_cytochemokine_enrich <- gsva_enrich(counts = mouse_rnaseq_filt_dex_koc,
+                                 geneset = cytochemokine_genesets)
+
+# perform GSVA with viral terms
+mm_virus_enrich <- gsva_enrich(counts = mouse_rnaseq_filt_dex_koc,
+                                 geneset = virus_genesets)
+
+# perform GSVA with hallmark terms
+mm_hallmark_enrich <- gsva_enrich(counts = mouse_rnaseq_filt_dex_koc,
+                                 geneset = hallmark_genesets)
 
 
 
@@ -291,17 +361,17 @@ Not much enrichment.
 
 ```{r}
 # highlight the immunological GO_BP terms
-c5_bp_li_oncotarget <- grep(pattern = li_oncotarget_terms,x = rownames(human_rnaseq_dge_fit_coeff2_qlft_top_lfclim_bp_enrich),ignore.case = TRUE)
-c5_bp_not_li_oncotarget <- grep(pattern = li_oncotarget_terms,x = rownames(human_rnaseq_dge_fit_coeff2_qlft_top_lfclim_bp_enrich),ignore.case = TRUE,invert = TRUE)
-c5_bp_annot <- data.frame(li_oncotarget = c(rep("li_onco",length(c5_bp_li_oncotarget)),
-                                            rep("non_li_onco",length(c5_bp_not_li_oncotarget))))
-rownames(c5_bp_annot) <- c(rownames(human_rnaseq_dge_fit_coeff2_qlft_top_lfclim_bp_enrich)[c5_bp_li_oncotarget],
-                           rownames(human_rnaseq_dge_fit_coeff2_qlft_top_lfclim_bp_enrich)[c5_bp_not_li_oncotarget])
+mm_c5_bp_li_oncotarget <- grep(pattern = li_oncotarget_terms,x = rownames(mm_c5_bp_enrich),ignore.case = TRUE)
+mm_c5_bp_not_li_oncotarget <- grep(pattern = li_oncotarget_terms,x = rownames(mm_c5_bp_enrich),ignore.case = TRUE,invert = TRUE)
+mm_c5_bp_annot <- data.frame(li_oncotarget = c(rep("li_onco",length(mm_c5_bp_li_oncotarget)),
+                                            rep("non_li_onco",length(mm_c5_bp_not_li_oncotarget))))
+rownames(mm_c5_bp_annot) <- c(rownames(mm_c5_bp_enrich)[mm_c5_bp_li_oncotarget],
+                           rownames(mm_c5_bp_enrich)[mm_c5_bp_not_li_oncotarget])
 #c5_bp_annot <- c5_bp_annot[order(c5_bp_annot$),]
-c5_bp_sorted <- human_rnaseq_dge_fit_coeff2_qlft_top_lfclim_bp_enrich[rownames(c5_bp_annot),]
-pheatmap(c5_bp_sorted,
-         annotation_col = human_rnaseq_design,
-         annotation_row = c5_bp_annot,
+mm_c5_bp_sorted <- mm_c5_bp_enrich[rownames(mm_c5_bp_annot),]
+pheatmap(mm_c5_bp_sorted,
+         annotation_col = mouse_rnaseq_design,
+         annotation_row = mm_c5_bp_annot,
          show_rownames = FALSE,
          show_colnames = FALSE,
          fontsize = 5.0,
@@ -310,5 +380,42 @@ pheatmap(c5_bp_sorted,
 ```
 
 
+The Li Oncotarget signatures in mouse
+```{r}
+pheatmap(mm_interferon_enrich,
+         annotation_col = mouse_rnaseq_design,
+         labels_row = rownames(mm_interferon_enrich),
+         show_colnames = FALSE,
+         cluster_cols = TRUE,
+         fontsize = 2.5,
+         main = "Interferon GO Terms")
+pheatmap(mm_cytochemokine_enrich,
+         annotation_col = mouse_rnaseq_design,
+         labels_row = rownames(mm_cytochemokine_enrich),
+         show_colnames = FALSE,
+         fontsize = 5.0,
+         cluster_cols = FALSE,
+         main = "Cytokine/Chemokine GO Terms")
+pheatmap(mm_virus_enrich,
+         annotation_col = mouse_rnaseq_design,
+         labels_row = rownames(mm_virus_enrich),
+         show_rownames = TRUE,
+         show_colnames = FALSE,
+         cluster_cols = FALSE,
+         fontsize_row = 2.5,
+         main = "Virus GO Terms")
+pheatmap(mm_hallmark_enrich,
+         annotation_col = mouse_rnaseq_design,
+         labels_row = rownames(mm_hallmark_enrich),
+         show_rownames = TRUE,
+         show_colnames = FALSE,
+         cluster_cols = FALSE,
+         fontsize_row = 2.5,
+         main = "Hallmark GO Terms")
 
+
+
+```
+
+Not a whole lot of condition-specific enrichment in other pathways.
 
