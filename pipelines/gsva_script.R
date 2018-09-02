@@ -71,7 +71,7 @@ import_gmt <- function(gmtfile) {
 gsva_enrich <- function(counts,geneset,ikcdf="Poisson",...) {
   enrichresults <- gsva(expr = as.matrix(counts), 
                         gset.idx.list = geneset, 
-                        min.sz=5, 
+                        min.sz=2, 
                         max.sz=500,
                         mx.diff=TRUE,
                         verbose=FALSE, 

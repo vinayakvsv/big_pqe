@@ -82,9 +82,9 @@ mouse_rnaseq_design$rep <- factor(rep(c(1,2,3),3))
 print(mouse_rnaseq_design)
 
 # model matrix
-mouse_rnaseq_model_matrix <- model.matrix(~ treatment,
+mouse_rnaseq_model <- model.matrix(~ treatment,
                                           mouse_rnaseq_design,contrasts.arg = mouse_rnaseq_design$treatment)
-print(mouse_rnaseq_model_matrix)
+print(mouse_rnaseq_model)
 # treat the sh-Control as the "baseline", so it gets an intercept term
 ```
 
@@ -93,11 +93,16 @@ print(mouse_rnaseq_model_matrix)
 ## dge list
 set DGElist object
 ```{r dgelist}
-mouse_rnaseq_dge <- DGEList(counts=mouse_rnaseq,
-                            genes = data.frame(genes = rownames(mouse_rnaseq))) # set DGE list
+# do some filtering first
+mouse_rnaseq_filt_ind <- apply(X = mouse_rnaseq,MARGIN = 1,function(X) {sum(X) > 0})
+mouse_rnaseq_filt <- mouse_rnaseq[mouse_rnaseq_filt_ind,]
+
+# now start estimating dispersions
+mouse_rnaseq_dge <- DGEList(counts=mouse_rnaseq_filt,
+                            genes = data.frame(genes = rownames(mouse_rnaseq_filt))) # set DGE list
 mouse_rnaseq_dge <- calcNormFactors(object = mouse_rnaseq_dge) # set normalization factors
 mouse_rnaseq_dge <- estimateDisp(y = mouse_rnaseq_dge,
-                                 design = mouse_rnaseq_model_matrix) # set dispersion factors
+                                 design = mouse_rnaseq_model) # set dispersion factors
 plotBCV(y = mouse_rnaseq_dge)
 # mouse_rnaseq_dge_exactTest <- exactTest(mouse_rnaseq_dge)
 ```
@@ -105,51 +110,204 @@ plotBCV(y = mouse_rnaseq_dge)
 ## glm
 fit GLM
 ```{r}
-mouse_rnaseq_dge_fit <- glmQLFit(mouse_rnaseq_dge, mouse_rnaseq_model_matrix)
+# The negative binomial generalized log-linear model was used in differential analysis.
+mouse_rnaseq_dge_fit <- glmFit.default(y = mouse_rnaseq_dge,
+                                       design = mouse_rnaseq_model,
+                                       dispersion = mouse_rnaseq_dge$trended.dispersion)
+
 ```
 
 ## check conditions
 Perform tests
+
+LSD1 KO vs Ctrl
 ```{r}
-logFC_edgeR_lim <- 2
-pval_cutoff <- 0.01
-n_toptag <- 1000
-# coef = 1 measures the baseline genes
-mouse_rnaseq_dge_fit_coeff1 <- glmQLFTest(glmfit = mouse_rnaseq_dge_fit,coef = 1)
-# coef = 2 measures the fold-changes between the control and the fold change
-mouse_rnaseq_dge_fit_coeff2 <- glmQLFTest(glmfit = mouse_rnaseq_dge_fit,coef = 2)
-mouse_rnaseq_dge_fit_coeff2_lrt <- glmLRT(glmfit = mouse_rnaseq_dge_fit,coef = 2)
+qval_cutoff <- 0.05
+n_toptag <- 10000
+logFC_edgeR_lim <- 1
+# LSD KO vs Ctrl
 
-mouse_rnaseq_dge_fit_treat <- glmTreat(glmfit = mouse_rnaseq_dge_fit, 
-                                       coef=2, 
-                                       lfc=logFC_edgeR_lim)
+mouse_rnaseq_dge_fit_lrt_KO <- glmLRT(mouse_rnaseq_dge_fit, 
+                                      coef=2)
 
-# topTags; show top 10
-mouse_rnaseq_dge_fit_coeff1_top <- topTags(mouse_rnaseq_dge_fit_coeff1)
-mouse_rnaseq_dge_fit_coeff2_top <- topTags(mouse_rnaseq_dge_fit_coeff2,p.value = pval_cutoff)
-mouse_rnaseq_dge_fit_coeff2_lrt_top <- topTags(mouse_rnaseq_dge_fit_coeff2_lrt,
-                                               p.value = pval_cutoff,
-                                               n = n_toptag)
-mouse_rnaseq_dge_fit_coeff2_treat_top <- topTags(object = mouse_rnaseq_dge_fit_treat,
-                                                 p.value = pval_cutoff,
-                                                 adjust.method = "BH",
-                                                 n = n_toptag,sort.by = "logFC")
-#mouse_rnaseq_dge_fit_treat <- glmTreat(glmfit = mouse_rnaseq_dge_fit, coef=1, lfc=logFC_edgeR_lim)
-#mouse_rnaseq_dge_fit_diff_top <- topTags(mouse_rnaseq_dge_fit_treat) #glmQLFTest(glmfit = mouse_rnaseq_dge_fit,coef = 2)
-
-# plot
-plot(mouse_rnaseq_dge_fit_coeff2_lrt$table$logFC,
-     -log10(mouse_rnaseq_dge_fit_coeff2_lrt$table$PValue),
+mouse_rnaseq_dge_fit_lrt_KO_top <- topTags(mouse_rnaseq_dge_fit_lrt_KO,
+                                           n = 100000,
+                                           adjust.method = "fdr")
+mouse_rnaseq_dge_fit_lrt_KO_top_up <- mouse_rnaseq_dge_fit_lrt_KO_top
+mouse_rnaseq_dge_fit_lrt_KO_top_up$table <- subset(mouse_rnaseq_dge_fit_lrt_KO_top$table,
+                                                logFC > logFC_edgeR_lim & FDR < qval_cutoff)
+# mouse_rnaseq_dge_fit_qlf_KO_top$table <- subset(mouse_rnaseq_dge_fit_qlf_KO_top$table,PValue < pval_cutoff & logFC > logFC_edgeR_lim)
+ 
+plot(x = mouse_rnaseq_dge_fit_lrt_KO_top$table$logFC,
+     y = -log10(mouse_rnaseq_dge_fit_lrt_KO_top$table$FDR),
+     xlim=c(-15,15),
      pch=20)
-points(mouse_rnaseq_dge_fit_coeff2_lrt_top$table$logFC,
-       -log10(mouse_rnaseq_dge_fit_coeff2_lrt_top$table$PValue),
-       col="red",pch=20)
 
-# plotMD
-plotMD(object = mouse_rnaseq_dge_fit_coeff2_lrt,adjust.method = "BH",p.value = pval_cutoff)
+points(x = mouse_rnaseq_dge_fit_lrt_KO_top_up$table$logFC,
+       y = -log10(mouse_rnaseq_dge_fit_lrt_KO_top_up$table$FDR),
+       col="red",
+       pch=20)
+ 
 ```
 
+
+DKO vs Ctrl
+```{r}
+pval_cutoff <- 0.05
+n_toptag <- 10000
+logFC_edgeR_lim <- 1
+# LSD KO vs Ctrl
+
+mouse_rnaseq_dge_fit_lrt_DKO <- glmLRT(mouse_rnaseq_dge_fit, 
+                                      coef=3)
+
+mouse_rnaseq_dge_fit_lrt_DKO_top <- topTags(mouse_rnaseq_dge_fit_lrt_DKO,
+                                           n = 100000,
+                                           adjust.method = "fdr")
+mouse_rnaseq_dge_fit_lrt_DKO_top_up <- mouse_rnaseq_dge_fit_lrt_DKO_top
+mouse_rnaseq_dge_fit_lrt_DKO_top_up$table <- subset(mouse_rnaseq_dge_fit_lrt_DKO_top$table,
+                                                logFC > logFC_edgeR_lim & FDR < qval_cutoff)
+
+plot(x = mouse_rnaseq_dge_fit_lrt_DKO_top$table$logFC,
+     y = -log10(mouse_rnaseq_dge_fit_lrt_DKO_top$table$FDR),
+     xlim=c(-15,15),
+     pch=20)
+
+points(x = mouse_rnaseq_dge_fit_lrt_DKO_top_up$table$logFC,
+       y = -log10(mouse_rnaseq_dge_fit_lrt_DKO_top_up$table$FDR),
+       col="red",
+       pch=20)
+ 
+```
+
+Visualize the heatmaps
+
+```{r}
+mm_dex_gene_names <- unique(c(rownames(mouse_rnaseq_dge_fit_lrt_KO_top_up$table),
+                           rownames(mouse_rnaseq_dge_fit_lrt_DKO_top_up$table)))
+mouse_rnaseq_filt_dex <- mouse_rnaseq_filt[rownames(mouse_rnaseq_filt) %in% mm_dex_gene_names,]
+pheatmap(mat = log2(mouse_rnaseq_filt_dex+1),
+         show_colnames = FALSE,
+         fontsize = 5.0,
+         cluster_cols = FALSE,
+         annotation_col = mouse_rnaseq_design[,c(2,3)])
+
+```
+
+
 # GO analysis
+
+We already have the gene symbols, 
+## GSVA
+
+Some helpful code notes
+```
+vvv3@login04:~/pillaifolder/rmarkdown/tfh_diffn$ grep -s "gsva" *.Rmd
+ranking_enhancerCluster_genes.Rmd:                             "pipelines/transcriptomics_pipeline/gsea/gsva_script.R"),
+tfhdiff.Rmd:source("pipelines/transcriptomics_pipeline/gsea/gsva_script.R")
+tfhdiff.Rmd:prepare_gsva()
+tfhdiff.Rmd:tcell.genesets.tfh.enrich <- gsva_enrich(counts = tcell.enrich.counts$counts.aggregate,geneset = tcell.genesets)
+vvv3@login04:~/pillaifolder/rmarkdown/tfh_diffn$ grep -s "tcell.genesets" *.Rmd
+tfhdiff.Rmd:tcell.genesets <- import_gmt(gmtfile = "referenceAnnotation/hg38/genesets/msigdb/custom/msigdb_tcell_genesets.gmt")
+tfhdiff.Rmd:tcell.genesets.tfh.enrich <- gsva_enrich(counts = tcell.enrich.counts$counts.aggregate,geneset = tcell.genesets)
+tfhdiff.Rmd:#colnames(tcell.genesets.tfh.enrich$es.obs) <- c("CD4naive","PD1loCXCR5pos","PD1intCXCR5pos","PD1hiCXCR5hi")
+tfhdiff.Rmd:tcell.genesets.tfh.enrich.es.kmeans <- kmeans_intervals(matrix = tcell.genesets.tfh.enrich$es.obs,kmax = 5,B=50)
+tfhdiff.Rmd:tcell.genesets.tfh.enrich.es <- as.data.frame(tcell.genesets.tfh.enrich$es.obs)
+tfhdiff.Rmd:tcell.genesets.tfh.enrich.es$k.choice <- tcell.genesets.tfh.enrich.es.kmeans$matrix.kmeans$kmeans
+tfhdiff.Rmd:length(tcell.genesets.tfh.enrich.es$k.choice)
+tfhdiff.Rmd:dim(tcell.genesets.tfh.enrich.es)
+tfhdiff.Rmd:tcell.genesets.tfh.enrich.es <- tcell.genesets.tfh.enrich.es[order(tcell.genesets.tfh.enrich.es$k.choice),]
+tfhdiff.Rmd:#enrichments <- tcell.genesets.tfh.enrich$es.obs[sort(tcell.genesets.tfh.enrich.es.kmeans$matrix.kmeans$kmeans),]
+tfhdiff.Rmd:rowannotation.ssgsea <- data.frame(kchoice = as.factor(sort(tcell.genesets.tfh.enrich.es.kmeans$matrix.kmeans$kmeans)))
+tfhdiff.Rmd:#rowannotation.ssgsea <- data.frame(kchoice = as.factor(tcell.genesets.tfh.enrich.es.kmeans$matrix.kmeans$kmeans))
+tfhdiff.Rmd:head(tcell.genesets.tfh.enrich.es)
+tfhdiff.Rmd:pheatmap(mat = tcell.genesets.tfh.enrich.es[,c(1:(ncol(tcell.genesets.tfh.enrich.es)-1))],
+vvv3@login04:~/pillaifolder/rmarkdown/tfh_diffn$
+```
+
+```{r}
+# prepare for GSVA
+prepare_gsva()
+```
+
+```{r}
+# import mouse gene sets
+mm_c2_genesets <- import_gmt(gmtfile = "../../referenceAnnot/genesets/mm10/msigdb_c2_mmusculus.gmt")
+mm_c6_genesets <- import_gmt(gmtfile = "../../referenceAnnot/genesets/mm10/msigdb_c6_mmusculus.gmt")
+mm_c7_genesets <- import_gmt(gmtfile = "../../referenceAnnot/genesets/mm10/msigdb_c7_mmusculus.gmt")
+
+# capitalize the gene sets
+rownames(mouse_rnaseq_filt_dex) <- toupper(rownames(mouse_rnaseq_filt_dex))
+
+# perform GSVA with GO terms from Li et al Oncotarget
+mm_c2_genesets_enrich <- gsva_enrich(counts = mouse_rnaseq_filt_dex,
+                                 geneset = mm_c2_genesets)
+mm_c6_genesets_enrich <- gsva_enrich(counts = mouse_rnaseq_filt_dex,
+                                 geneset = mm_c6_genesets)
+mm_c7_genesets_enrich <- gsva_enrich(counts = mouse_rnaseq_filt_dex,
+                                 geneset = mm_c7_genesets)
+
+
+
+```
+
+
+Set the terms of the signatures that we want
+```{r}
+# set li oncotarget terms
+li_oncotarget_terms <- paste("interferon",
+                             "cytokine",
+                             "inflammation",
+                             "influenza",
+                             "testes",
+                             "presentation",
+                             sep = "|")
+```
+
+Plot enrichment
+```{r}
+pheatmap(mm_c2_genesets_enrich,
+         annotation_col = mouse_rnaseq_design,
+         show_colnames = FALSE,
+         cluster_cols = FALSE,
+         fontsize = 5.0,
+         main = "C2")
+pheatmap(mm_c6_genesets_enrich,
+         annotation_col = mouse_rnaseq_design,
+         show_colnames = FALSE,
+         cluster_cols = FALSE,
+         fontsize = 5.0,
+         main = "C6")
+pheatmap(mm_c7_genesets_enrich,
+         annotation_col = mouse_rnaseq_design,
+         show_colnames = FALSE,
+         show_rownames = FALSE,
+         fontsize = 5.0,
+         main = "C7")
+
+```
+
+Not much enrichment. 
+
+```{r}
+# highlight the immunological GO_BP terms
+c5_bp_li_oncotarget <- grep(pattern = li_oncotarget_terms,x = rownames(human_rnaseq_dge_fit_coeff2_qlft_top_lfclim_bp_enrich),ignore.case = TRUE)
+c5_bp_not_li_oncotarget <- grep(pattern = li_oncotarget_terms,x = rownames(human_rnaseq_dge_fit_coeff2_qlft_top_lfclim_bp_enrich),ignore.case = TRUE,invert = TRUE)
+c5_bp_annot <- data.frame(li_oncotarget = c(rep("li_onco",length(c5_bp_li_oncotarget)),
+                                            rep("non_li_onco",length(c5_bp_not_li_oncotarget))))
+rownames(c5_bp_annot) <- c(rownames(human_rnaseq_dge_fit_coeff2_qlft_top_lfclim_bp_enrich)[c5_bp_li_oncotarget],
+                           rownames(human_rnaseq_dge_fit_coeff2_qlft_top_lfclim_bp_enrich)[c5_bp_not_li_oncotarget])
+#c5_bp_annot <- c5_bp_annot[order(c5_bp_annot$),]
+c5_bp_sorted <- human_rnaseq_dge_fit_coeff2_qlft_top_lfclim_bp_enrich[rownames(c5_bp_annot),]
+pheatmap(c5_bp_sorted,
+         annotation_col = human_rnaseq_design,
+         annotation_row = c5_bp_annot,
+         show_rownames = FALSE,
+         show_colnames = FALSE,
+         fontsize = 5.0,
+         main = "BP")
+
+```
 
 
 

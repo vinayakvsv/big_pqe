@@ -4,7 +4,7 @@ output: html_notebook
 ---
 
 # Setup
-```{r setup}
+```{r}
 # install.packages("readxl")
 library(readxl)
 source("https://bioconductor.org/biocLite.R")
@@ -96,6 +96,7 @@ This is a pretty simple experimental setup: two conditions, one H69M and one H69
 
 ```{r set_design}
 gset_canadas_meta <- data.frame(celltype=gset_canadas$`cell line:ch1`)
+rownames(gset_canadas_meta) <- colnames(gset_canadas)
 gset_canadas_trsf$description <- gset_canadas_meta$celltype
 design_canadas <- model.matrix(~ 0 + description, gset_canadas_trsf)
 colnames(design_canadas) <- levels(gset_canadas_meta$celltype)
@@ -273,13 +274,173 @@ write.table(x = tT_canadas_sig_up_h69m_in_sem,file = "./tT_canadas_sig_up_h69m_i
 
 # GSVA analysis
 
+## Setup GSVA
 Prepare gsva
 ```{r}
-biocLite("KEGG.db")
-biocLite("qusage")
-install.packages("rlecuyer")
-biocLite("piano")
 prepare_gsva()
 ```
+
+Gene set imports
+```{r}
+# import some gene sets for GSVA
+kegg_genesets <- import_gmt(gmtfile = "../../referenceAnnot/genesets/hg38/msigdb_c2.cp.kegg_hsapiens.gmt")
+bp_genesets <- import_gmt(gmtfile = "../../referenceAnnot/genesets/hg38/msigdb_c5.bp_hsapiens.gmt")
+cancer_genesets <- import_gmt(gmtfile = "../../referenceAnnot/genesets/hg38/msigdb_c6_hsapiens.gmt")
+immune_genesets <- import_gmt(gmtfile = "../../referenceAnnot/genesets/hg38/msigdb_c7_hsapiens.gmt")
+# from the Li et al oncotarget 2014 paper
+interferon_genesets <- import_gmt(gmtfile = "../../referenceAnnot/genesets/hg38/custom/msigdb_interferon.gmt")
+cytochemokine_genesets <- import_gmt(gmtfile = "../../referenceAnnot/genesets/hg38/custom/msigdb_cytochemokine.gmt")
+inflammation_genesets <- import_gmt(gmtfile = "../../referenceAnnot/genesets/hg38/custom/msigdb_inflammation.gmt")
+antigen_genesets <- import_gmt(gmtfile = "../../referenceAnnot/genesets/hg38/custom/msigdb_antigen.gmt")
+# virus-related terms
+virus_genesets <- import_gmt(gmtfile = "../../referenceAnnot/genesets/hg38/custom/msigdb_virus.gmt")
+
+# hallmark sets--verified in microarrays
+hallmark_genesets <- import_gmt(gmtfile = "../../referenceAnnot/genesets/hg38/msigdb_hallmark_hsapiens.gmt")
+```
+
+Get counts
+```{r}
+
+tT_canadas_sig_up_h69m_expr <- exprs(gset_canadas_trsf)[rownames(exprs(gset_canadas_trsf)) %in% tT_canadas_sig_up_h69m$ID,]
+tT_canadas_sig_up_h69m_expr_genes <- sapply(rownames(tT_canadas_sig_up_h69m_expr),
+                                            function(x) {
+                                              a <- subset(tT_canadas_sig_up_h69m,ID %in% x)
+                                              a[,"GENE_SYMBOL"]
+                                            })
+# remove NA probes
+tT_canadas_sig_up_h69m_expr <- tT_canadas_sig_up_h69m_expr[!is.na(tT_canadas_sig_up_h69m_expr_genes),]
+tT_canadas_sig_up_h69m_expr_genes <- tT_canadas_sig_up_h69m_expr_genes[!is.na(tT_canadas_sig_up_h69m_expr_genes)]
+# ids
+tT_canadas_sig_up_h69m_expr_ids <- rownames(tT_canadas_sig_up_h69m_expr)
+rownames(tT_canadas_sig_up_h69m_expr) <- tT_canadas_sig_up_h69m_expr_genes
+
+```
+
+
+## Perform enrichment analysis
+
+```{r}
+
+# perform GSVA with KEGG
+canadas_kegg_enrich <- gsva_enrich(counts = tT_canadas_sig_up_h69m_expr,
+                                                                  geneset = kegg_genesets)
+# perform GSVA with Cancer pathways
+canadas_cancer_enrich <- gsva_enrich(counts = tT_canadas_sig_up_h69m_expr,
+                                                                    geneset = cancer_genesets)
+# perform GSVA with Immune pathways
+canadas_immune_enrich <- gsva_enrich(counts = tT_canadas_sig_up_h69m_expr,
+                                                                    geneset = immune_genesets)
+# perform GSVA with Immune pathways
+canadas_bp_enrich <- gsva_enrich(counts = tT_canadas_sig_up_h69m_expr,
+                                                                geneset = bp_genesets)
+
+# perform GSVA with GO terms from Li et al Oncotarget
+canadas_interferon_enrich <- gsva_enrich(counts = tT_canadas_sig_up_h69m_expr,
+                                 geneset = interferon_genesets,
+                                 ikcdf = "Gaussian",method=c("ssgsea"))
+canadas_cytochemokine_enrich <- gsva_enrich(counts = tT_canadas_sig_up_h69m_expr,
+                                 geneset = cytochemokine_genesets,
+                                 ikcdf = "Gaussian",method=c("ssgsea"))
+canadas_inflammation_enrich <- gsva_enrich(counts = tT_canadas_sig_up_h69m_expr,
+                                 geneset = inflammation_genesets,
+                                 ikcdf = "Gaussian",method=c("ssgsea"))
+canadas_antigen_enrich <- gsva_enrich(counts = tT_canadas_sig_up_h69m_expr,
+                                 geneset = antigen_genesets,
+                                 ikcdf = "Gaussian",method=c("ssgsea"))
+
+# perform GSVA with viral terms
+canadas_virus_enrich <- gsva_enrich(counts = tT_canadas_sig_up_h69m_expr,
+                                 geneset = virus_genesets,
+                                 ikcdf = "Gaussian",method=c("ssgsea"))
+
+# perform GSVA with hallmark terms
+canadas_hallmark_enrich <- gsva_enrich(counts = tT_canadas_sig_up_h69m_expr,
+                                 geneset = hallmark_genesets,
+                                 ikcdf = "Gaussian",method=c("ssgsea"))
+
+
+```
+
+
+## Plots
+
+```{r}
+# heatmaps for pathways
+pheatmap(canadas_kegg_enrich,
+         annotation_col = gset_canadas_meta,
+         labels_row = rownames(canadas_kegg_enrich),
+         show_colnames = FALSE,
+         fontsize = 2.5,
+         main = "KEGG")
+pheatmap(canadas_cancer_enrich,
+         annotation_col = gset_canadas_meta,
+         labels_row = rownames(canadas_cancer_enrich),
+         show_colnames = FALSE,
+         fontsize = 2.5,
+         main = "Cancer pathways (general)")
+pheatmap(canadas_immune_enrich,
+         annotation_col = gset_canadas_meta,
+         labels_row = rownames(canadas_immune_enrich),
+         show_colnames = FALSE,
+         fontsize = 2.5,
+         main = "Immune pathways")
+pheatmap(canadas_bp_enrich,
+         annotation_col = gset_canadas_meta,
+         labels_row = rownames(canadas_bp_enrich),
+         show_colnames = FALSE,
+         fontsize = 2.5,
+         main = "GO Biological Processes")
+
+
+
+```
+
+
+
+```{r}
+# heatmaps for li et al oncotarget signatures
+pheatmap(canadas_interferon_enrich,
+         annotation_col = gset_canadas_meta,
+         labels_row = rownames(canadas_interferon_enrich),
+         show_colnames = FALSE,
+         cluster_cols = FALSE,
+         fontsize = 2.5,
+         main = "Interferon GO Terms")
+pheatmap(canadas_cytochemokine_enrich,
+         annotation_col = gset_canadas_meta,
+         labels_row = rownames(canadas_cytochemokine_enrich),
+         show_colnames = FALSE,
+         fontsize = 5.0,
+         cluster_cols = FALSE,
+         main = "Cytokine/Chemokine GO Terms")
+pheatmap(canadas_inflammation_enrich,
+         annotation_col = gset_canadas_meta,
+         labels_row = rownames(canadas_inflammation_enrich),
+         cluster_rows = FALSE,
+         cluster_cols = FALSE,
+         show_colnames = FALSE,
+         fontsize = 5.0,
+         main = "Inflammation GO terms")
+pheatmap(canadas_antigen_enrich,
+         annotation_col = gset_canadas_meta,
+         labels_row = rownames(canadas_antigen_enrich),
+         show_rownames = TRUE,
+         fontsize = 4.0,
+         show_colnames = FALSE,
+         cluster_cols = FALSE,
+         main = "Antigen Presentation and Receptor GO Terms")
+pheatmap(canadas_virus_enrich,
+         annotation_col = gset_canadas_meta,
+         labels_row = rownames(canadas_virus_enrich),
+         show_rownames = TRUE,
+         show_colnames = FALSE,
+         cluster_cols = FALSE,
+         fontsize_row = 2.5,
+         main = "Virus GO Terms")
+
+
+```
+
 
 
