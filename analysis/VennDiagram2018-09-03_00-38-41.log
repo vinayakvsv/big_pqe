@@ -1,0 +1,8 @@
+INFO [2018-09-03 00:38:41] $x
+INFO [2018-09-03 00:38:41] list(chiappinelli = chiappinelli_ifn_signature_unique_genes, 
+INFO [2018-09-03 00:38:41]     canadas = canadas_ifn_signature_unique_genes)
+INFO [2018-09-03 00:38:41] 
+INFO [2018-09-03 00:38:41] $filename
+INFO [2018-09-03 00:38:41] NULL
+INFO [2018-09-03 00:38:41] 
+ERROR [2018-09-03 00:38:41] NAs in dataset

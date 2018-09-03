@@ -1,0 +1,5 @@
+"chiappinelli"	"canadas"	"shenglafleur"
+"SP100"	TRUE	TRUE	TRUE
+"IGF2BP1"	TRUE	TRUE	TRUE
+"HLA-B"	TRUE	TRUE	TRUE
+"TAP2"	TRUE	TRUE	TRUE

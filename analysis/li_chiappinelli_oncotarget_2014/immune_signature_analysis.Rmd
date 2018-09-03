@@ -354,7 +354,7 @@ by_cell_fits_decideTests <- lapply(by_cell_fits_ebayes,
                               function(x) {
                                 decideTests(object = x,
                                             method = "global",
-                                            adjust.method = "fdr",
+                                            adjust.method = "BH",
                                             p.value = alpha)
                               })
 names(by_cell_fits_decideTests) <- names(by_cell_fits)
@@ -363,10 +363,10 @@ names(by_cell_fits_decideTests) <- names(by_cell_fits)
 by_cell_fits_topTables <- lapply(by_cell_fits_ebayes,
                               function(x) {
                                 topTable(fit = x,
-                                         adjust = "fdr",
+                                         adjust = "BH",
                                          sort.by = "B",
                                          number = nrow(x),
-                                         p.value = alpha)
+                                         p.value = 1)
                               })
 names(by_cell_fits_topTables) <- names(by_cell_fits)
 ```
@@ -402,6 +402,7 @@ sig_up_genes <- lapply(seq_along(along.with = by_cell_fits_decideTests),
                       # also, extract based on the signature
                       x.tT <- x.tT[rownames(x.tT) %in% rownames(x.decide_sig),]
                       # x.tT <- subset(x.tT,AveExpr >= avgExp_min & AveExpr <= avgExp_max)
+                      x.tT <- subset(x.tT,adj.P.Val < alpha)
                       # x.tT_signature <- x.tT[grep(pattern = signature,x = x.tT$GO_ID,ignore.case = TRUE),]
                       x.tT
                       #x.decide[rownames(x.decide) %in% rownames(!is.na(x.decide)),]
@@ -419,6 +420,43 @@ names(sig_up_genes_in_signature) <- names(by_cell_fits_decideTests)
 
 ```
 
+Get significantly down-regulated genes
+```{r immunesig_downreg}
+
+sig_down_genes <- lapply(seq_along(along.with = by_cell_fits_decideTests),
+                    function(x) {
+                      x.decide <- by_cell_fits_decideTests[[x]]
+                      x.tT <- by_cell_fits_topTables[[x]]
+                      # remove the NAs
+                      x.decide.sig <- apply(X = x.decide,MARGIN = 1,
+                                            function(x) {
+                                              # return TRUE if at least one 1 is in the row and if NA's do not dominate the row
+                                              length(x[x == -1]) >= 1 & length(x[is.na(x)]) < length(x)
+                                            })
+                      x.decide_sig <- x.decide[x.decide.sig,]
+                      # extract the entries that are significant at a particular time point
+                      # also, extract based on the signature
+                      x.tT <- x.tT[rownames(x.tT) %in% rownames(x.decide_sig),]
+                      x.tT <- subset(x.tT,adj.P.Val < alpha)
+                      # x.tT <- subset(x.tT,AveExpr >= avgExp_min & AveExpr <= avgExp_max)
+                      # x.tT_signature <- x.tT[grep(pattern = signature,x = x.tT$GO_ID,ignore.case = TRUE),]
+                      x.tT
+                      #x.decide[rownames(x.decide) %in% rownames(!is.na(x.decide)),]
+                    })
+names(sig_down_genes) <- names(by_cell_fits_decideTests)
+
+# extract the interferon signature
+sig_down_genes_in_signature <- lapply(seq_along(along.with = sig_down_genes),
+                                 function(x) {
+                                   x.tT <- sig_down_genes[[x]]
+                                   x.tT_signature <- x.tT[grep(pattern = li_oncotarget_terms,x = x.tT$GO_ID,ignore.case = TRUE),]
+                                   x.tT_signature
+                                 })
+names(sig_down_genes_in_signature) <- names(by_cell_fits_decideTests)
+
+```
+
+
 ## plot
 
 ```{r}
@@ -426,6 +464,7 @@ plot_sig_up_genes <- lapply(seq_along(along.with = sig_up_genes),
                          function(x) {
                            x.tT <- by_cell_fits_topTables[[x]]
                            x.tT.sig <- sig_up_genes[[x]]
+                           x.tT.sig_down <- sig_down_genes[[x]]
                            # all points
                            # ylim_padj <- min(x.tT.sig$"adj.P.Val",na.rm = TRUE)
                            # print(-log10(ylim_padj))
@@ -446,12 +485,22 @@ plot_sig_up_genes <- lapply(seq_along(along.with = sig_up_genes),
                                 -log10(x.tT.sig$adj.P.Val),
                                 pch=20,
                                 col="grey")
+                           points(x.tT.sig_down$AveExpr,
+                                -log10(x.tT.sig_down$adj.P.Val),
+                                pch=20,
+                                col="cornflower blue")
                            # sig genes in signature
                            x.tT.signature <- sig_up_genes_in_signature[[x]]
+                           x.tT.signature_down <- sig_down_genes_in_signature[[x]]
                            points(x.tT.signature$AveExpr,
                                 -log10(x.tT.signature$adj.P.Val),
                                 pch=20,
                                 col="pink")
+                           points(x.tT.signature_down$AveExpr,
+                                -log10(x.tT.signature_down$adj.P.Val),
+                                pch=20,
+                                col="orange")
+
                            legend(x = "topright",
                                   legend = c("all genes",
                                              "significantly increased expression",
@@ -462,7 +511,7 @@ plot_sig_up_genes <- lapply(seq_along(along.with = sig_up_genes),
                          })
 ```
 
-The putative "interferon signature" is 
+The putative "interferon signature" is the set of li oncotarget signatures that are upregulated in AZA-treated cell lines
 
 ```{r test_ifn_signature}
 test_ifn_signature <- unique(unlist(lapply(sig_up_genes_in_signature,function(x) {unique(x$GENE_SYMBOL)})))
@@ -473,11 +522,42 @@ test_ifn_signature_probeInd_genes <- lapply(sig_up_genes_in_signature,
                                                                  rname = rownames(x))
                                               x.df
                                               })
+
 test_ifn_signature_probeInd_genes <- do.call(rbind,test_ifn_signature_probeInd_genes)
+
 test_ifn_signature_probeInd_genes <- aggregate.data.frame(x = test_ifn_signature_probeInd_genes,by = list(test_ifn_signature_probeInd_genes$rname),unique)
 
 print(test_ifn_signature)
 ```
+
+```{r test_ifn_downgenes_signature}
+# sig_down_genes_in_signature
+test_down_ifn_signature <- unique(unlist(lapply(sig_down_genes_in_signature,
+                                                function(x) {
+                                                  unique(x$GENE_SYMBOL)
+                                                  })))
+test_down_ifn_signature_probeInd <- unique(unlist(lapply(sig_down_genes_in_signature,
+                                                         function(x) {
+                                                           rownames(x)
+                                                           })))
+test_down_ifn_signature_probeInd_genes <- lapply(sig_down_genes_in_signature,
+                                            function(x) {
+                                              x.df <- data.frame(gene = x$GENE_SYMBOL,
+                                                                 rname = rownames(x))
+                                              x.df
+                                              })
+
+test_down_ifn_signature_probeInd_genes <- do.call(rbind,test_down_ifn_signature_probeInd_genes)
+
+test_down_ifn_signature_probeInd_genes <- aggregate.data.frame(x = test_down_ifn_signature_probeInd_genes,
+                                                               by = list(test_down_ifn_signature_probeInd_genes$rname),
+                                                               unique)
+
+print(test_down_ifn_signature)
+
+
+```
+
 
 Heatmap
 ```{r}
@@ -498,14 +578,26 @@ sig_set <- unlist(lapply(sig_up_genes,
                          function(x) {
                            rownames(x)
                            }))
+sig_set_down <- unlist(lapply(sig_down_genes,
+                         function(x) {
+                           rownames(x)
+                           }))
+# join the up- and down-regulated genes
+sig_set_full <- unique(c(sig_set,sig_set_down))
 
-gset_log2exp_sig <- gset_log2exp_pass[rownames(gset_log2exp_pass) %in% sig_set,]
+
+gset_log2exp_sig <- gset_log2exp_pass[rownames(gset_log2exp_pass) %in% sig_set_full,]
 gset_log2exp_sig_ifnsignature <- gset_log2exp_pass[rownames(gset_log2exp_pass) %in% test_ifn_signature_probeInd_genes$rname,]
-gset_log2exp_sig_ifnsignature_genename <- sapply(rownames(gset_log2exp_sig_ifnsignature),function(x) {test_ifn_signature_probeInd_genes[test_ifn_signature_probeInd_genes$rname %in% x,"gene"]})
+gset_log2exp_sig_ifnsignature_genename <- sapply(rownames(gset_log2exp_sig_ifnsignature),
+                                                 function(x) {
+                                                   test_ifn_signature_probeInd_genes[test_ifn_signature_probeInd_genes$rname %in% x,"gene"]
+                                                   })
 
 colannot <- data.frame(cell_type = gset_meta$cell_type)
 rownames(colannot) <- rownames(gset_meta)
+```
 
+```{}
 pheatmap(mat = gset_log2exp_sig_ifnsignature, 
          show_colnames = FALSE,
          labels_row = gset_log2exp_sig_ifnsignature_genename,
@@ -520,8 +612,6 @@ pheatmap(mat = gset_log2exp_sig,
 
 ```
 
-Perhaps we can re-run GSEA on all of the "significant" genes?
-
 Save the current gene signature
 ```{r}
 
@@ -530,10 +620,47 @@ lapply(seq_along(sig_up_genes_in_signature),
          x.sig <- sig_up_genes_in_signature[[x]]
          x.tT_subset <- subset(x.sig, select=c("ID","adj.P.Val","P.Value","F","GENE_SYMBOL","GENE_NAME","AveExpr","GO_ID"))
          # "timeDay.1","timeDay.10","timeDay.14","timeDay.21","timeDay.3","timeDay.7
-         x.filename <- paste(names(sig_up_genes_in_signature)[x],"_table",".txt",sep = "")
+         x.filename <- paste0("./",names(sig_up_genes_in_signature)[x],"_up_genes_in_signature","_table",".txt",sep = "")
          print(paste("writing",x.filename))
-         write.table(x = "./",file = x.filename,quote = FALSE,sep = "\t",row.names = TRUE,col.names = TRUE)
+         print(getwd())
+         write.table(x = x.tT_subset,file = x.filename,quote = FALSE,sep = "\t",row.names = TRUE,col.names = TRUE)
        })
+
+lapply(seq_along(sig_down_genes_in_signature),
+       function(x) {
+         x.sig <- sig_down_genes_in_signature[[x]]
+         x.tT_subset <- subset(x.sig, select=c("ID","adj.P.Val","P.Value","F","GENE_SYMBOL","GENE_NAME","AveExpr","GO_ID"))
+         # "timeDay.1","timeDay.10","timeDay.14","timeDay.21","timeDay.3","timeDay.7
+         x.filename <- paste0("./",names(sig_down_genes_in_signature)[x],"_down_genes_in_signature","_table",".txt",sep = "")
+         print(paste("writing",x.filename))
+         write.table(x = x.tT_subset,file = x.filename,quote = FALSE,sep = "\t",row.names = TRUE,col.names = TRUE)
+       })
+
+lapply(seq_along(sig_up_genes),
+       function(x) {
+         x.sig <- sig_up_genes[[x]]
+         x.tT_subset <- subset(x.sig, select=c("ID","adj.P.Val","P.Value","F","GENE_SYMBOL","GENE_NAME","AveExpr","GO_ID"))
+         # "timeDay.1","timeDay.10","timeDay.14","timeDay.21","timeDay.3","timeDay.7
+         x.filename <- paste0("./",names(sig_up_genes)[x],"_up_genes","_table",".txt",sep = "")
+         print(paste("writing",x.filename))
+         write.table(x = x.tT_subset,file = x.filename,quote = FALSE,sep = "\t",row.names = TRUE,col.names = TRUE)
+       })
+lapply(seq_along(sig_down_genes),
+       function(x) {
+         x.sig <- sig_down_genes[[x]]
+         x.tT_subset <- subset(x.sig, select=c("ID","adj.P.Val","P.Value","F","GENE_SYMBOL","GENE_NAME","AveExpr","GO_ID"))
+         # "timeDay.1","timeDay.10","timeDay.14","timeDay.21","timeDay.3","timeDay.7
+         x.filename <- paste0("./",names(sig_down_genes)[x],"_down_genes","_table",".txt",sep = "")
+         print(paste("writing",x.filename))
+         write.table(x = x.tT_subset,file = x.filename,quote = FALSE,sep = "\t",row.names = TRUE,col.names = TRUE)
+       })
+
+
+# output 'test_ifn_signature_probeInd_genes'
+write.table(x = test_ifn_signature_probeInd_genes,file = "test_ifn_signature_probeInd_genes.txt",quote = FALSE,sep = "\t",row.names = TRUE,col.names = TRUE)
+write.table(x = test_down_ifn_signature_probeInd_genes,file = "test_down_ifn_signature_probeInd_genes.txt",quote = FALSE,sep = "\t",row.names = TRUE,col.names = TRUE)
+
+
 ```
 
 
@@ -605,5 +732,128 @@ virus_genesets <- import_gmt(gmtfile = "../../referenceAnnot/genesets/hg38/custo
 hallmark_genesets <- import_gmt(gmtfile = "../../referenceAnnot/genesets/hg38/msigdb_hallmark_hsapiens.gmt")
 ```
 
+Define the GO terms from Li et al Oncotarget 2014
+```{r}
+# set li oncotarget terms
+li_oncotarget_terms <- paste("interferon",
+                             "cytokine",
+                             "inflammation",
+                             "influenza",
+                             "testes",
+                             "presentation",
+                             sep = "|")
+```
+
+Prepare counts
+```{r}
+gset_log2exp_sig_ifnsignature_log2fl <- gset_log2exp_sig_ifnsignature
+rownames(gset_log2exp_sig_ifnsignature_log2fl) <- gset_log2exp_sig_ifnsignature_genename
+gset_meta_simple <- data.frame(cell_type = gset_meta$cell_type)
+rownames(gset_meta_simple) <- rownames(gset_meta)
+```
+
+
+
+Start enrichment. For now, focus on EOC
+```{r}
+# perform GSVA with KEGG
+chiappinelli_kegg_enrich <- gsva_enrich(counts = gset_log2exp_sig_ifnsignature_log2fl,
+                                                                  geneset = kegg_genesets)
+# perform GSVA with Cancer pathways
+chiappinelli_cancer_enrich <- gsva_enrich(counts = gset_log2exp_sig_ifnsignature_log2fl,
+                                                                    geneset = cancer_genesets)
+# perform GSVA with Immune pathways
+chiappinelli_immune_enrich <- gsva_enrich(counts = gset_log2exp_sig_ifnsignature_log2fl,
+                                                                    geneset = immune_genesets)
+# perform GSVA with GP
+chiappinelli_bp_enrich <- gsva_enrich(counts = gset_log2exp_sig_ifnsignature_log2fl,
+                                                                geneset = bp_genesets)
+
+# perform GSVA with GO terms from Li et al Oncotarget
+chiappinelli_interferon_enrich <- gsva_enrich(counts = gset_log2exp_sig_ifnsignature_log2fl,
+                                 geneset = interferon_genesets,
+                                 ikcdf = "Gaussian",method=c("gsva"))
+chiappinelli_cytochemokine_enrich <- gsva_enrich(counts = gset_log2exp_sig_ifnsignature_log2fl,
+                                 geneset = cytochemokine_genesets,
+                                 ikcdf = "Gaussian",method=c("gsva"))
+chiappinelli_inflammation_enrich <- gsva_enrich(counts = gset_log2exp_sig_ifnsignature_log2fl,
+                                 geneset = inflammation_genesets,
+                                 ikcdf = "Gaussian",method=c("gsva"))
+chiappinelli_antigen_enrich <- gsva_enrich(counts = gset_log2exp_sig_ifnsignature_log2fl,
+                                 geneset = antigen_genesets,
+                                 ikcdf = "Gaussian",method=c("gsva"))
+
+# perform GSVA with viral terms
+chiappinelli_virus_enrich <- gsva_enrich(counts = gset_log2exp_sig_ifnsignature_log2fl,
+                                 geneset = virus_genesets,
+                                 ikcdf = "Gaussian",method=c("ssgsea"))
+
+# perform GSVA with hallmark terms
+chiappinelli_hallmark_enrich <- gsva_enrich(counts = gset_log2exp_sig_ifnsignature_log2fl,
+                                 geneset = hallmark_genesets,
+                                 ikcdf = "Gaussian",method=c("ssgsea"))
+
+
+```
+
+Plot enrichments
+```{r}
+# heatmaps for pathways
+pheatmap(chiappinelli_kegg_enrich,
+         annotation_col = gset_meta_simple,
+         labels_row = rownames(chiappinelli_kegg_enrich),
+         show_colnames = FALSE,
+         fontsize = 5.0,
+         main = "KEGG")
+pheatmap(chiappinelli_bp_enrich,
+         annotation_col = gset_meta_simple,
+         labels_row = rownames(chiappinelli_bp_enrich),
+         show_colnames = FALSE,
+         show_rownames = FALSE,
+         fontsize = 2.5,
+         main = "GO Biological Processes")
+
+```
+
+
+```{r}
+pheatmap(chiappinelli_interferon_enrich,
+         annotation_col = gset_meta_simple,
+         labels_row = rownames(chiappinelli_interferon_enrich),
+         show_colnames = FALSE,
+         fontsize = 5.0,
+         main = "Interferon GO Terms")
+pheatmap(chiappinelli_cytochemokine_enrich,
+         annotation_col = gset_meta_simple,
+         labels_row = rownames(chiappinelli_cytochemokine_enrich),
+         show_colnames = FALSE,
+         fontsize = 5.0,
+         main = "Cytokine/Chemokine GO Terms")
+pheatmap(chiappinelli_inflammation_enrich,
+         annotation_col = gset_meta_simple,
+         labels_row = rownames(chiappinelli_inflammation_enrich),
+         cluster_rows = FALSE,
+         show_colnames = FALSE,
+         fontsize = 5.0,
+         main = "Inflammation GO terms")
+pheatmap(chiappinelli_antigen_enrich,
+         annotation_col = gset_meta_simple,
+         labels_row = rownames(chiappinelli_antigen_enrich),
+         show_rownames = TRUE,
+         fontsize = 5.0,
+         show_colnames = FALSE,
+         main = "Antigen Presentation and Receptor GO Terms")
+pheatmap(chiappinelli_virus_enrich,
+         annotation_col = gset_meta_simple,
+         labels_row = rownames(chiappinelli_virus_enrich),
+         legend = FALSE,
+         show_rownames = TRUE,
+         show_colnames = FALSE,
+         fontsize_row = 2.5,
+         main = "Virus GO Terms")
+
+```
+
+We see strong values for the Li et al Oncotarget GO terms, and most of the variation appears to be between cell lines. We can be assured that we have a good approximation of our signal. 
 
 # ERV analysis

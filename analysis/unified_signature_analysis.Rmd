@@ -7,26 +7,146 @@ We derived three signatures from each of the human datasets--Chiappinelli, Canad
 
 # Import signatures
 
+These are up-regulated signatures
 ```{r get_chiappinelli_sig}
+# breast table
+print(getwd())
+chiappinelli_up_breast <- read.table(file = "./li_chiappinelli_oncotarget_2014/breast_up_genes_in_signature_table.txt",
+                                  header = TRUE,
+                                  sep = "\t",
+                                  row.names = 1)
+chiappinelli_down_breast <- read.table(file = "./li_chiappinelli_oncotarget_2014/breast_down_genes_in_signature_table.txt",
+                                  header = TRUE,sep = "\t",row.names = 1)
+
+# colon table
+chiappinelli_up_colon <- read.table(file = "./li_chiappinelli_oncotarget_2014/colon_up_genes_in_signature_table.txt",
+                                 header = TRUE,sep = "\t",row.names = 1)
+chiappinelli_down_colon <- read.table(file = "./li_chiappinelli_oncotarget_2014/colon_down_genes_in_signature_table.txt",
+                                  header = TRUE,sep = "\t",row.names = 1)
+
+# ovarian table
+chiappinelli_up_ovarian <- read.table(file = "li_chiappinelli_oncotarget_2014/ovarian_up_genes_in_signature_table.txt",
+                                      header = TRUE,sep = "\t",row.names = 1)
+chiappinelli_down_ovarian <- read.table(file = "li_chiappinelli_oncotarget_2014/ovarian_down_genes_in_signature_table.txt",
+                                  header = TRUE,sep = "\t",row.names = 1)
+
+
+# get the genes and their average expressions
+breast_ave_expr <- data.frame(avexpr=chiappinelli_breast$AveExpr)
+breast_ave_expr.aggr <- aggregate.data.frame(x = breast_ave_expr,
+                                             by = list(chiappinelli_breast$GENE_SYMBOL),
+                                             FUN = mean)
+colon_ave_expr <- data.frame(avexpr=chiappinelli_colon$AveExpr)
+colon_ave_expr.aggr <- aggregate.data.frame(x = colon_ave_expr,
+                                            by = list(chiappinelli_colon$GENE_SYMBOL),
+                                            FUN = mean)
+ovarian_ave_expr <- data.frame(avexpr=chiappinelli_ovarian$AveExpr)
+ovarian_ave_expr.aggr <- aggregate.data.frame(x = ovarian_ave_expr,
+                                              by = list(chiappinelli_ovarian$GENE_SYMBOL),
+                                              FUN = mean)
+
+# up signature
+ifn_signature_up_genes_list <- read.table(file = "li_chiappinelli_oncotarget_2014/test_ifn_signature_probeInd_genes.txt",sep = "\t")
+ifn_signature_down_genes_list <- read.table(file = "li_chiappinelli_oncotarget_2014/test_down_ifn_signature_probeInd_genes.txt",sep = "\t")
+# down signature
+ifn_signature_genes_list <- do.call(rbind,
+                                    list(ifn_signature_up_genes_list,
+                                         ifn_signature_down_genes_list))
+chiappinelli_ifn_signature_unique_genes <- unique(ifn_signature_genes_list$gene)
+
+
 ```
 
 ```{r get_canadas_sig}
+# get all up-regulated genes that we designated
+# write.table(x = tT_canadas_sig_up_in_sem,file = "./tT_canadas_sig_up_in_sem.txt",row.names = TRUE,col.names = TRUE,sep = "\t",quote = FALSE)
+# write.table(x = tT_canadas_sig_up_h69m,file = "./tT_canadas_sig_up_h69m.txt",row.names = TRUE,col.names = TRUE,sep = "\t",quote = FALSE)
+# write.table(x = tT_canadas_sig_up_h69m_in_sem,file = "./tT_canadas_sig_up_h69m_in_sem.txt",row.names = TRUE,col.names = TRUE,sep = "\t",quote = FALSE)
+canadas_sig_nsclc <- read.table(file = "canadas_2018/tT_canadas_sig_up_h69m.txt",
+                            header = TRUE,
+                            row.names = 1,
+                            sep = "\t")
+
+# get the up-regulated genes that Canadas designated
+canadas_sig_sem_nsclc <- read.table(file = "canadas_2018/tT_canadas_sig_up_in_sem.txt",
+                            header = TRUE,
+                            row.names = 1,
+                            sep = "\t")
+
+# get their SPARCs genes
+canadas_sparcs_nsclc <- read.table(file = "canadas_2018/tT_canadas_sparcs.txt",
+                            header = TRUE,
+                            row.names = 1,
+                            sep = "\t")
+
+# get all genes with a 3' UTR
+canadas_3putr_nsclc <- read.table(file = "canadas_2018/tT_canadas_erv_sig_all.txt",
+                            header = TRUE,
+                            row.names = 1,
+                            sep = "\t")
+
+# complete, SPARCS or non-SPARCS signature from canadas
+canadas_ifn_signature_unique_genes <- unique(c(as.character(canadas_sig_nsclc$GENE_SYMBOL),
+                                               as.character(canadas_sig_sem_nsclc$GENE_SYMBOL)))
+canadas_ifn_signature_unique_genes <- canadas_ifn_signature_unique_genes[!is.na(canadas_ifn_signature_unique_genes)]
 ```
 
 ```{r get_shenglafleur_sig}
+# get the human upregulated signatures
+sheng_lafleur_signature_symbols <- read.table(file = "sheng_lafleur_2018/ifn_viral_signature_shenglafleur_hs.txt",
+                                              header = TRUE,
+                                              row.names = 1,
+                                              sep = "\t")
+sheng_lafleur_signature <- as.character(sheng_lafleur_signature_symbols$symbol)
 ```
 
+# Measure intersections
 
-# Generate an empirical model of the number of "significant" hits
+```{r vennDiag}
+# install.package("VennDiagram")
+# draw a Venn Diagram
+library(VennDiagram)
+chiap_canad_venn <- venn.diagram(x = list(chiappinelli = as.character(chiappinelli_ifn_signature_unique_genes),
+                                          canadas = canadas_ifn_signature_unique_genes,
+                                          sheng_lafleur = sheng_lafleur_signature),
+                                 filename = "./canadas_chiappinelli_intersect.jpg")
 
-We want to determine 
+```
+
+```{r}
+unified_sig <- unique(c(as.character(chiappinelli_ifn_signature_unique_genes),
+                        canadas_ifn_signature_unique_genes,
+                        sheng_lafleur_signature))
+# assemble the table of intersections
+unified_sig_intersection <- data.frame(chiappinelli = (unified_sig %in% as.character(chiappinelli_ifn_signature_unique_genes)))
+unified_sig_intersection$canadas <- (unified_sig %in% canadas_ifn_signature_unique_genes)
+unified_sig_intersection$shenglafleur <- (unified_sig %in% sheng_lafleur_signature)
+rownames(unified_sig_intersection) <- unified_sig
+# pheatmap(unified_sig_intersection)
+
+unified_sig_intersection_all <- subset(unified_sig_intersection,
+                                   chiappinelli & canadas & shenglafleur)
+unified_sig_intersection_chia_sheng <- subset(unified_sig_intersection,
+                                              chiappinelli & shenglafleur & !canadas)
+unified_sig_intersection_canad_sheng <- subset(unified_sig_intersection,
+                                              canadas & shenglafleur & !chiappinelli)
+unified_sig_intersection_chia_canad <- subset(unified_sig_intersection,
+                                              chiappinelli & canadas & !shenglafleur)
+
+print(unified_sig_intersection_all)
+print(unified_sig_intersection_chia_sheng)
+print(unified_sig_intersection_canad_sheng)
+print(unified_sig_intersection_chia_canad)
+
+```
+
+The studies have very little overlap with each other. The four genes conserved across all the conditions are involved in endogenous peptide presentation (TAP2 loads peptides onto MHCI complex). The individual pairwise matches show different components of the interferon response and innate immunity up-regulated.
+
 
 # TCGA re-analysis
 
-Downloaded from GDAC firehose
+Using the different intersections of signatures, we want to re-cluster TCGA data and find if we can group tumors just as well. Data was downloaded from GDAC firehose
 ```{r brca}
-
-gdac_grca
 
 ```
 
