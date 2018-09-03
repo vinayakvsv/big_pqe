@@ -47,14 +47,24 @@ ovarian_ave_expr.aggr <- aggregate.data.frame(x = ovarian_ave_expr,
 
 # up signature
 ifn_signature_up_genes_list <- read.table(file = "li_chiappinelli_oncotarget_2014/test_ifn_signature_probeInd_genes.txt",sep = "\t")
-ifn_signature_down_genes_list <- read.table(file = "li_chiappinelli_oncotarget_2014/test_down_ifn_signature_probeInd_genes.txt",sep = "\t")
 # down signature
+ifn_signature_down_genes_list <- read.table(file = "li_chiappinelli_oncotarget_2014/test_down_ifn_signature_probeInd_genes.txt",sep = "\t")
+# get unique signatures
 ifn_signature_genes_list <- do.call(rbind,
                                     list(ifn_signature_up_genes_list,
                                          ifn_signature_down_genes_list))
 chiappinelli_ifn_signature_unique_genes <- unique(ifn_signature_genes_list$gene)
+# annotate these signatures
+chiappinelli_ifn_signature_unique_genes_annot<- data.frame(is_up = chiappinelli_ifn_signature_unique_genes %in% ifn_signature_up_genes_list$gene,
+                                                           is_down = chiappinelli_ifn_signature_unique_genes %in% ifn_signature_down_genes_list$gene)
+chiappinelli_ifn_signature_unique_genes_annot$is_up <- factor(x = chiappinelli_ifn_signature_unique_genes_annot$is_up,
+                                                              levels = c(FALSE,TRUE),
+                                                              labels = c(0,1))
+chiappinelli_ifn_signature_unique_genes_annot$is_down <- factor(x = chiappinelli_ifn_signature_unique_genes_annot$is_down,
+                                                              levels = c(FALSE,TRUE),
+                                                              labels = c(0,1))
 
-
+rownames(chiappinelli_ifn_signature_unique_genes_annot) <- chiappinelli_ifn_signature_unique_genes
 ```
 
 ```{r get_canadas_sig}
@@ -151,11 +161,346 @@ The studies have very little overlap with each other. The four genes conserved a
 
 # TCGA re-analysis
 
+## Get GDAC data
 Using the different intersections of signatures, we want to re-cluster TCGA data and find if we can group tumors just as well. Data was downloaded from GDAC firehose
-```{r brca}
+```{r gdac}
+
+brca_gdac <- read.table(file = "../../datasets/gdac_firehose/gdac.broadinstitute.org_BRCA.Merge_rnaseqv2__illuminahiseq_rnaseqv2__unc_edu__Level_3__RSEM_genes_normalized__data.Level_3.2016012800.0.0/BRCA.rnaseqv2__illuminahiseq_rnaseqv2__unc_edu__Level_3__RSEM_genes_normalized__data.data.txt",header = TRUE,sep = "\t",row.names = 1)
+# save(brca_gdac, file = "./data/RNAseq/brcaRNAseq.RData")
+
+# Colon
+coad_gdac <- read.table(file = "../../datasets/gdac_firehose/gdac.broadinstitute.org_COAD.Merge_rnaseqv2__illuminahiseq_rnaseqv2__unc_edu__Level_3__RSEM_genes_normalized__data.Level_3.2016012800.0.0/COAD.rnaseqv2__illuminahiseq_rnaseqv2__unc_edu__Level_3__RSEM_genes_normalized__data.data.txt",header = TRUE,sep = "\t",row.names = 1)
+# save(coad_gdac, file = "./data/RNAseq/coadRNAseq.RData")
+
+# Lung
+lusc_gdac <- read.table(file = "../../datasets/gdac_firehose/gdac.broadinstitute.org_LUSC.Merge_rnaseqv2__illuminahiseq_rnaseqv2__unc_edu__Level_3__RSEM_genes_normalized__data.Level_3.2016012800.0.0/LUSC.rnaseqv2__illuminahiseq_rnaseqv2__unc_edu__Level_3__RSEM_genes_normalized__data.data.txt",header = TRUE,sep = "\t",row.names = 1)
+# save(lusc_gdac, file = "./data/RNAseq/luscRNAseq.RData")
+
+# Ovarian
+ov_gdac <- read.table(file = "../../datasets/gdac_firehose/gdac.broadinstitute.org_OV.Merge_rnaseqv2__illuminahiseq_rnaseqv2__unc_edu__Level_3__RSEM_genes_normalized__data.Level_3.2016012800.0.0/OV.rnaseqv2__illuminahiseq_rnaseqv2__unc_edu__Level_3__RSEM_genes_normalized__data.data.txt",header = TRUE,sep = "\t",row.names = 1)
+# save(ov_gdac, file = "./data/RNAseq/ovRNAseq.RData")
+
+# save cancer files
+gdac_cancer_files <- list(brca = brca_gdac,
+                          coad = coad_gdac,
+                          lusc = lusc_gdac,
+                          ov = ov_gdac)
 
 ```
 
+Compress into a single data frame
+```{r}
+gdac_selected_cancers <- as.data.frame(do.call(what = cbind,args = gdac_cancer_files))
+gdac_selected_cancers_annot <- data.frame(TCGA = c(rep("BRCA",length(brca_gdac)),
+                                                   rep("COAD",length(coad_gdac)),
+                                                   rep("LUSC",length(lusc_gdac)),
+                                                   rep("OV",length(ov_gdac))
+                                                   ))
+rownames(gdac_selected_cancers_annot) <- colnames(gdac_selected_cancers)
+```
+
+
+## Identify expression of each IFN-viral gene signature
+
+### Chiappinelli 
+```{r chiappinelli_tcga}
+
+chiappinelli_ifn_signature_unique_genes <- as.character(chiappinelli_ifn_signature_unique_genes)
+
+chiappinelli_ifn_signature_tcga <- sapply(chiappinelli_ifn_signature_unique_genes,
+                                          function(g) {
+                                            a <- grepl(pattern = as.character(paste0("^",g,"\\|")),
+                                                       x = rownames(gdac_selected_cancers),
+                                                       ignore.case = FALSE)
+                                            rownames(gdac_selected_cancers)[a]
+                                          })
+gdac_selected_cancers.chiappinelli_tcga <- gdac_selected_cancers[rownames(gdac_selected_cancers) %in% 
+                                                                   unlist(chiappinelli_ifn_signature_tcga),]
+rownames(gdac_selected_cancers.chiappinelli_tcga) <- sapply(rownames(gdac_selected_cancers.chiappinelli_tcga),
+                                                            function(x) {
+                                                              a <- unlist(strsplit(x = x,split = "|",fixed = TRUE))
+                                                              a[1]
+                                                            })
+#rownames(gdac_selected_cancers.chiappinelli_tcga) <- names(unlist(chiappinelli_ifn_signature_tcga))
+
+gdac_selected_cancers.chiappinelli_tcga_mat <- apply(X = gdac_selected_cancers.chiappinelli_tcga,
+                                                 MARGIN = 2,
+                                                 FUN = function(x) {
+                                                   as.numeric(x)
+                                                 })
+rownames(gdac_selected_cancers.chiappinelli_tcga_mat) <- rownames(gdac_selected_cancers.chiappinelli_tcga)
+  #grep(pattern = paste0(chiappinelli_ifn_signature_unique_genes,"|"),x = rownames(gdac_selected_cancers),ignore.case = TRUE)
+
+# gdac_selected_cancers.chiappinelli <- gdac_selected_cancers[]
+
+```
+
+```{r chiappinelli_tcga_plot}
+chiappinelli_tcga_clust <- pheatmap(mat = log10(gdac_selected_cancers.chiappinelli_tcga_mat+1),
+         show_colnames = FALSE,
+         show_rownames = TRUE,
+         fontsize_row = 2.5,
+         annotation_col = gdac_selected_cancers_annot,
+         annotation_row = chiappinelli_ifn_signature_unique_genes_annot,
+         legend_labels = c("log10(RSEM-scaled counts+1)"),
+         cutree_rows = 4,
+         main = c(paste("DEX genes from Li et al 2014 and Chiappinelli et al 2015\nin",ncol(gdac_selected_cancers.chiappinelli_tcga_mat),"TCGA samples")))
+# plot(chiappinelli_tcga_clust)
+```
+
+the specific ERV signature?
+
+### Canadas
+
+```{r chiappinelli_tcga}
+
+canadas_ifn_signature_unique_genes <- as.character(canadas_ifn_signature_unique_genes)
+
+canadas_ifn_signature_tcga <- sapply(canadas_ifn_signature_unique_genes,
+                                          function(g) {
+                                            a <- grepl(pattern = as.character(paste0("^",g,"\\|")),
+                                                       x = rownames(gdac_selected_cancers),
+                                                       ignore.case = FALSE)
+                                            rownames(gdac_selected_cancers)[a]
+                                          })
+gdac_selected_cancers.canadas_tcga <- gdac_selected_cancers[rownames(gdac_selected_cancers) %in% 
+                                                                   unlist(canadas_ifn_signature_tcga),]
+canadas_split_names <- sapply(rownames(gdac_selected_cancers.canadas_tcga),
+                                                            function(x) {
+                                                              a <- unlist(strsplit(x = x,
+                                                                                   split = "|",fixed = TRUE))
+                                                              a[1]
+                                                            })
+rownames(gdac_selected_cancers.canadas_tcga_mat) <- as.character(canadas_split_names)
+
+gdac_selected_cancers.canadas_tcga_mat <- apply(X = gdac_selected_cancers.canadas_tcga,
+                                                 MARGIN = 2,
+                                                 FUN = function(x) {
+                                                   as.numeric(x)
+                                                 })
+rownames(gdac_selected_cancers.canadas_tcga_mat) <- as.character(canadas_split_names) # rownames(gdac_selected_cancers.canadas_tcga)
+  #grep(pattern = paste0(chiappinelli_ifn_signature_unique_genes,"|"),x = rownames(gdac_selected_cancers),ignore.case = TRUE)
+
+# gdac_selected_cancers.chiappinelli <- gdac_selected_cancers[]
+
+```
+
+```{r chiappinelli_tcga_plot}
+canadas_tcga_clust <- pheatmap(mat = log10(gdac_selected_cancers.canadas_tcga_mat+1),
+         show_colnames = FALSE,
+         show_rownames = TRUE,
+         fontsize_row = 2.5,
+         annotation_col = gdac_selected_cancers_annot,
+         legend_labels = c("log10(RSEM-scaled counts+1)"),
+         cutree_rows = 4,
+         main = c(paste("DEX genes from Canadas et al 2014 and Canadas et al 2018\nin",ncol(gdac_selected_cancers.chiappinelli_tcga_mat),"TCGA samples")))
+# plot(chiappinelli_tcga_clust)
+```
+
+Cluster 2 seems to be a "lung inflammatory" sub-signature
+
+```{r}
+gdac_selected_cancers.canadas_tcga_mat_3putr <- gdac_selected_cancers.canadas_tcga_mat[rownames(gdac_selected_cancers.canadas_tcga_mat) %in% 
+                                                                                         canadas_3putr_nsclc$GENE_SYMBOL,] 
+canadas_3putrerv_tcga_clust <- pheatmap(mat = log10(gdac_selected_cancers.canadas_tcga_mat_3putr+1),
+         show_colnames = FALSE,
+         show_rownames = TRUE,
+         fontsize_row = 5.0,
+         annotation_col = gdac_selected_cancers_annot,
+         legend_labels = c("log10(RSEM-scaled counts+1)"),
+         main = c(paste("3' UTR ERV-containing DEX genes from Canadas et al 2014 and\nCanadas et al 2018 in",ncol(gdac_selected_cancers.chiappinelli_tcga_mat),"TCGA samples")))
+# plot(chiappinelli_tcga_clust)
+```
+
+Most of the 3' UTR ERV-containing DEX genes are uniformly increased in expression across the tumors
+
+
+### Sheng and LaFleur
+
+All Sheng and LaFleur DEX?
+
+Sheng and LaFleur signature
+```{r chiappinelli_tcga}
+
+sheng_lafleur_signature_unique_genes <- as.character(sheng_lafleur_signature)
+
+sheng_lafleur_signature_tcga <- sapply(sheng_lafleur_signature_unique_genes,
+                                          function(g) {
+                                            a <- grepl(pattern = as.character(paste0("^",g,"\\|")),
+                                                       x = rownames(gdac_selected_cancers),
+                                                       ignore.case = FALSE)
+                                            rownames(gdac_selected_cancers)[a]
+                                          })
+gdac_selected_cancers.sheng_lafleur_tcga <- gdac_selected_cancers[rownames(gdac_selected_cancers) %in% 
+                                                                   unlist(sheng_lafleur_signature_tcga),]
+
+gdac_selected_cancers.sheng_lafleur_tcga_mat <- apply(X = gdac_selected_cancers.sheng_lafleur_tcga,
+                                                 MARGIN = 2,
+                                                 FUN = function(x) {
+                                                   as.numeric(x)
+                                                 })
+
+rownames(gdac_selected_cancers.sheng_lafleur_tcga_mat) <- sapply(rownames(gdac_selected_cancers.sheng_lafleur_tcga),
+                                                            function(x) {
+                                                              a <- unlist(strsplit(x = x,split = "|",fixed = TRUE))
+                                                              a[1]
+                                                            })
+
+# rownames(gdac_selected_cancers.sheng_lafleur_tcga_mat) <- rownames(gdac_selected_cancers.sheng_lafleur_tcga)
+  #grep(pattern = paste0(chiappinelli_ifn_signature_unique_genes,"|"),x = rownames(gdac_selected_cancers),ignore.case = TRUE)
+
+# gdac_selected_cancers.chiappinelli <- gdac_selected_cancers[]
+
+```
+
+```{r sheng_lafleur_plot}
+sheng_lafleur_tcga_clust <- pheatmap(mat = log10(gdac_selected_cancers.sheng_lafleur_tcga_mat+1),
+         show_colnames = FALSE,
+         show_rownames = TRUE,
+         fontsize_row = 2.5,
+         annotation_col = gdac_selected_cancers_annot,
+         legend_labels = c("log10(RSEM-scaled counts+1)"),
+         cutree_rows = 5,
+         main = c(paste("DEX genes from Sheng and LaFleur et al 2018\nin",ncol(gdac_selected_cancers.chiappinelli_tcga_mat),"TCGA samples")))
+# plot(chiappinelli_tcga_clust)
+```
+
+
+The "up-regulation" and "down-regulation" subsets from the cell lines don't exactly predict the "high" and "low" subsets in the patients. How consistent is the classifier?
+
+
+### Consolidated signature
+
+```{r unified_tcga}
+
+
+unified_signature_tcga <- sapply(rownames(unified_sig_intersection),
+                                          function(g) {
+                                            a <- grepl(pattern = as.character(paste0("^",g,"\\|")),
+                                                       x = rownames(gdac_selected_cancers),
+                                                       ignore.case = FALSE)
+                                            rownames(gdac_selected_cancers)[a]
+                                          })
+gdac_selected_cancers.unified_signature_tcga <- gdac_selected_cancers[rownames(gdac_selected_cancers) %in% 
+                                                                   unlist(unified_signature_tcga),]
+
+gdac_selected_cancers.unified_signature_tcga_mat <- apply(X = gdac_selected_cancers.unified_signature_tcga,
+                                                 MARGIN = 2,
+                                                 FUN = function(x) {
+                                                   as.numeric(x)
+                                                 })
+
+rownames(gdac_selected_cancers.unified_signature_tcga_mat) <- unlist(sapply(rownames(gdac_selected_cancers.unified_signature_tcga),
+                                                            function(x) {
+                                                              a <- unlist(strsplit(x = x,split = "|",fixed = TRUE))
+                                                              a[1]
+                                                            }))
+
+# rownames(gdac_selected_cancers.sheng_lafleur_tcga_mat) <- rownames(gdac_selected_cancers.sheng_lafleur_tcga)
+  #grep(pattern = paste0(chiappinelli_ifn_signature_unique_genes,"|"),x = rownames(gdac_selected_cancers),ignore.case = TRUE)
+
+# gdac_selected_cancers.chiappinelli <- gdac_selected_cancers[]
+
+```
+
+```{r unified_row_annot}
+
+# unified_sig_intersection$chiappinelli <- factor(x = unified_sig_intersection$chiappinelli,levels = c(FALSE,TRUE),labels = c("no","yes"))
+# unified_sig_intersection$canadas <- factor(x = unified_sig_intersection$canadas,levels = c(FALSE,TRUE),labels = c("no","yes"))
+# unified_sig_intersection$shenglafleur <- factor(x = unified_sig_intersection$shenglafleur,levels = c(FALSE,TRUE),labels = c("no","yes"))
+```
+
+```{r unified_row_plot}
+unified_sig_intersection <- unified_sig_intersection[order(unified_sig_intersection$chiappinelli,
+                                                           unified_sig_intersection$canadas,
+                                                           unified_sig_intersection$shenglafleur),]
+
+set.seed(0)
+nhclust <- 4
+unified_tcga_clust <- pheatmap(mat = log10(gdac_selected_cancers.unified_signature_tcga_mat+1),
+         show_colnames = FALSE,
+         show_rownames = FALSE,
+         fontsize_row = 2.5,
+         annotation_col = gdac_selected_cancers_annot,
+         annotation_row = unified_sig_intersection,
+         cutree_rows = 4,
+         legend_labels = c("log10(RSEM-scaled counts+1)"),
+         main = c(paste("DEX genes from Sheng and LaFleur et al 2018\nin",ncol(gdac_selected_cancers.chiappinelli_tcga_mat),"TCGA samples")))
+
+unified_tcga_clust_hclusters <- cutree(tree = unified_tcga_clust$tree_row,k = nhclust)
+
+# plot(chiappinelli_tcga_clust)
+```
+
+Cluster 3 is uniformly increased across all of the samples. 
+
+Top-most cluster
+```{r top_cluster}
+highest_cluster_unified_signature <- unified_tcga_clust_hclusters[unified_tcga_clust_hclusters %in% 4]
+lowest_cluster_unified_signature <- unified_tcga_clust_hclusters[unified_tcga_clust_hclusters %in% 3]
+
+gdac_selected_cancers.unified_signature_tcga_mat.top_vs_bottom <- gdac_selected_cancers.unified_signature_tcga_mat[rownames(gdac_selected_cancers.unified_signature_tcga_mat) %in% 
+                                                                                         names(c(highest_cluster_unified_signature,lowest_cluster_unified_signature)),] 
+rowannot_top_bottom_clusters <- data.frame(cluster = as.factor(c(highest_cluster_unified_signature,
+                                                                 lowest_cluster_unified_signature)))
+rownames(rowannot_top_bottom_clusters) <- names(c(highest_cluster_unified_signature,
+                                                     lowest_cluster_unified_signature))
+
+unified_signature_tcga_mat.top_vs_bottom_clust <- pheatmap(mat = log10(gdac_selected_cancers.unified_signature_tcga_mat.top_vs_bottom+1),
+         show_colnames = FALSE,
+         show_rownames = TRUE,
+         cluster_cols = FALSE,
+         fontsize_row = 5.0,
+         annotation_col = gdac_selected_cancers_annot,
+         annotation_row = rowannot_top_bottom_clusters,
+         cutree_rows = 3,
+         legend_labels = c("log10(RSEM-scaled counts+1)"),
+         main = c(paste("Highest- and lowest-expressed gene sets of the",nrow(unified_sig_intersection),
+                        "in\n",ncol(gdac_selected_cancers.chiappinelli_tcga_mat),"TCGA samples")))
+# plot(chiappinelli_tcga_clust)
+
+
+var1_cluster_unified_signature <- unified_tcga_clust_hclusters[unified_tcga_clust_hclusters %in% 1]
+var2_cluster_unified_signature <- unified_tcga_clust_hclusters[unified_tcga_clust_hclusters %in% 2]
+
+gdac_selected_cancers.unified_signature_tcga_mat.variable_exp <- gdac_selected_cancers.unified_signature_tcga_mat[rownames(gdac_selected_cancers.unified_signature_tcga_mat) %in% 
+                                                                                         names(c(var1_cluster_unified_signature,
+                                                                                                 var2_cluster_unified_signature)),] 
+rowannot_variable_clusters <- data.frame(cluster = as.factor(c(var1_cluster_unified_signature,
+                                                               var2_cluster_unified_signature)))
+rownames(rowannot_variable_clusters) <- names(c(var1_cluster_unified_signature,
+                                                var2_cluster_unified_signature))
+unified_signature_tcga_mat.top_vs_bottom_clust <- pheatmap(mat = log10(gdac_selected_cancers.unified_signature_tcga_mat.variable_exp+1),
+         show_colnames = FALSE,
+         show_rownames = TRUE,
+         cluster_cols = FALSE,
+         fontsize_row = 5.0,
+         annotation_col = gdac_selected_cancers_annot,
+         annotation_row = rowannot_variable_clusters,
+         cutree_rows = 3,
+         legend_labels = c("log10(RSEM-scaled counts+1)"),
+         main = c(paste("Middle-expressed gene sets of the",nrow(unified_sig_intersection),
+                        "in\n",ncol(gdac_selected_cancers.chiappinelli_tcga_mat),"TCGA samples")))
+# plot(chiappinelli_tcga_clust)
+
+```
+
+```{r}
+print("highest")
+print(names(highest_cluster_unified_signature)) # mostly housekeeping stuff... 
+print("lowest")
+print(names(lowest_cluster_unified_signature))
+```
+
+### GSVA of the Consolidated signatures' four clusters
 
 ```{r}
 ```
+
+
+# How mutually informative are the signatures
+
+Finally, we would like to know how the IFN-viral signatures from 
+
+
+
