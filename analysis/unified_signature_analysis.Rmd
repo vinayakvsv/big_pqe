@@ -3,8 +3,33 @@ title: "Unified analysis of signatures"
 output: html_notebook
 ---
 
-We derived three signatures from each of the human datasets--Chiappinelli, Canadas, and Sheng/LaFleur. How similar are these three signatures?
+We derived three signatures from each of the human datasets--Chiappinelli, Canadas, and Sheng/LaFleur. We want to know how similar these signatures, and specifically the IFN-ERV signature, are. 
+
+# Import signatures
+
+```{r get_chiappinelli_sig}
+```
+
+```{r get_canadas_sig}
+```
+
+```{r get_shenglafleur_sig}
+```
+
+
+# Generate an empirical model of the number of "significant" hits
+
+We want to determine 
+
+# TCGA re-analysis
+
+Downloaded from GDAC firehose
+```{r brca}
+
+gdac_grca
+
+```
+
 
 ```{r}
-plot(cars)
 ```

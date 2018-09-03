@@ -131,7 +131,7 @@ tT_canadas_gene_names <- sapply(tT_canadas$gene_assignment,
                                 })
 tT_canadas$GENE_SYMBOL <- as.character(tT_canadas_gene_names)
 
-tT_canadas_subset <- subset(tT_canadas, select=c("ID","adj.P.Val","P.Value","t","B","logFC","GENE_SYMBOL","AveExpr"))
+tT_canadas_subset <- subset(tT_canadas, select=c("ID","adj.P.Val","P.Value","t","B","logFC","GENE_SYMBOL","AveExpr","RANGE_STRAND"))
 
 # # fit1 <- contrasts.fit(fit,cont.matrix)
 # fit2 <- contrasts.fit(fit_bycell, cont.matrix)
@@ -444,5 +444,77 @@ pheatmap(canadas_virus_enrich,
 
 
 # ERV analysis
+
+Canadas et al examined SPARCS-containing genes (genes with antisense ERVs in the 3' UTR regions of genes that go up in H69M cells relative to H69 cells) and designate these genes as the IFN-viral signature. We want to figure out how these genes stack up on our plot
+
+```{r get_erv_utrs}
+
+erv_3prime_refseq <- canadas_topgenes_sem$S1_hg19_3utr_ERV
+canadas_3utr_ervs_up <- canadas_topgenes_sem$`S2_up_down genes H69M vs H69`$`Genes containing 3'UTR ERVs`
+canadas_3utr_ervs_up <- canadas_3utr_ervs_up[!is.na(canadas_3utr_ervs_up)]
+canadas_3utr_ervs_down <- canadas_topgenes_sem$`S2_up_down genes H69M vs H69`$`Genes containing 3'UTR ERVs__1`
+canadas_3utr_ervs_down <- canadas_3utr_ervs_down[!is.na(canadas_3utr_ervs_down)]
+
+```
+
+
+Plot
+```{r}
+
+plot(tT_canadas_subset$logFC,
+     -log10(tT_canadas_subset$adj.P.Val),
+     xlab=c("log2FC (H69M-H69)"),
+     ylab="adj.P.val",
+     pch=20,
+     col="grey")
+# tT_canadas_sig_up_h69m <- subset(tT_canadas_subset,adj.P.Val <= alpha & logFC > log2fc_lim)
+# tT_canadas_sig_down_h69m <- subset(tT_canadas_subset,adj.P.Val <= alpha & logFC < -log2fc_lim)
+points(tT_canadas_sig_up_h69m$logFC,
+       -log10(tT_canadas_sig_up_h69m$adj.P.Val),
+       pch=20,
+       col="red")
+     #col=as.factor(tT_canadas_subset$adj.P.Val <= alpha & tT_canadas_subset$logFC >= log2fc_lim))
+
+# tT_canadas_sig_up_h69m_in_sem <- subset(tT_canadas_sig_up_h69m,GENE_SYMBOL %in% canadas_topgenes_sem_up)
+tT_canadas_sparcs_up <- subset(tT_canadas_subset,GENE_SYMBOL %in% canadas_3utr_ervs_up & RANGE_STRAND %in% "-")
+tT_canadas_sparcs_down <- subset(tT_canadas_subset,GENE_SYMBOL %in% canadas_3utr_ervs_down & RANGE_STRAND %in% "-")
+tT_canadas_sparcs_all <- subset(tT_canadas_subset,
+                               GENE_SYMBOL %in% c(canadas_3utr_ervs_up,canadas_3utr_ervs_down) & 
+                                 RANGE_STRAND %in% "-")
+tT_canadas_3p_utr_erv_sig_all <- subset(tT_canadas_subset,
+                                        GENE_SYMBOL %in% c(canadas_3utr_ervs_up,canadas_3utr_ervs_down))
+
+
+points(tT_canadas_sparcs_up$logFC,
+       -log10(tT_canadas_3utr_ervs_up$adj.P.Val),
+       pch=20,
+       col="blue")
+points(tT_canadas_sparcs_down$logFC,
+       -log10(tT_canadas_3utr_ervs_down$adj.P.Val),
+       pch=20,
+       col="blue")
+points(tT_canadas_3p_utr_erv_sig_all$logFC,
+       -log10(tT_canadas_3p_utr_erv_sig_all$adj.P.Val),
+       pch=3,
+       col="cornflower blue")
+
+abline(h = -log10(alpha),
+       v = log2fc_lim,
+       lty=2,
+       col="red")
+
+# save the sparcs
+write.table(x = tT_canadas_sparcs_all,file = "./tT_canadas_sparcs.txt",row.names = TRUE,col.names = TRUE,sep = "\t",quote = FALSE)
+write.table(x = tT_canadas_3p_utr_erv_sig_all,file = "./tT_canadas_erv_sig_all.txt",row.names = TRUE,col.names = TRUE,sep = "\t",quote = FALSE)
+
+#write.table(x = tT_canadas_sig_up_h69m,file = "./tT_canadas_sig_up_h69m.txt",row.names = TRUE,col.names = TRUE,sep = "\t",quote = FALSE)
+#write.table(x = tT_canadas_sig_up_h69m_in_sem,file = "./tT_canadas_sig_up_h69m_in_sem.txt",row.names = TRUE,col.names = TRUE,sep = "\t",quote = FALSE)
+
+```
+
+
+
+
+
 
 
