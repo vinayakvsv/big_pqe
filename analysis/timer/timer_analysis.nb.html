@@ -182,17 +182,150 @@ $(document).ready(function () {
 <p>We will locate the TIMER script (we won’t source it, because doing so runs the script right away), format the data as the tutorial asks (tutorial is here: <a href="http://cistrome.org/TIMER/misc/readme.txt" class="uri">http://cistrome.org/TIMER/misc/readme.txt</a>)</p>
 <p>The preparation required</p>
 <pre><code>TIMER analaysis was all performed on the Cancer Genome Atlas (TCGA) samples. The gene expression data profiled by RNA-seq or Affymetrix arrays are accessible through GDAC firehose (https://gdac.broadinstitute.org). Please first download all the data matrices (preferrably RSEM, if not available, then RPKM) and transform them into XXXX.Rdata format (where XXXX is the cancer abbreviation, in lower case, same below), then deposit into a folder named &quot;RNAseq&quot;. Clinical data for all cancers should be downloaded from TCGA public ftp: https://tcga-data.nci.nih.gov/tcgafiles/ftp_auth/distro_ftpusers/anonymous/tumor/XXXX/bcr/nationwidechildrens.org/bio/clin/. Replace &quot;XXXX&quot; with the desired cancer abbreviation and select the latest version of the clinical file ending with &quot;patient_XXXX.txt&quot;. Please put all the clinical data files into a folder named &quot;Clinical&quot;. TIMER requires tumor purity information for acurate estimation of immune-related genes. Purity is available in the Related data files. After downloading the zip file, please unzip the purity estimation files into a folder named &quot;AGP&quot;. TIMER also uses reference immune cell expression files to estimate the immune infiltration levels. These files are available in the Related data files 1-3. Please download these files and put them into a folder named &quot;immune_datasets&quot;. Please also download the Supplementar Table S5 from Rooney et al., 2015, Cell and convert it to a text file (mmc5.txt) and place it into a folder named &quot;virus&quot;. </code></pre>
+<div id="packages" class="section level2">
+<h2>packages</h2>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyBUSU1FUiBhbmFseXNpcyByZXF1aXJlcyBhIG51bWJlciBvZiBSIHBhY2thZ2VzLCBpbmNsdWRpbmc6IGdncGxvdDIsIHBwY29yLCByZXNoYXBlMiwgc3Vydml2YWwsIHF2YWx1ZSBhbmQgQ0hBVC4gTWFrZSBzdXJlIHlvdSBoYXZlIGluc3RhbGxlZCB0aGVzZSBwYWNrYWdlcyBiZWZvcmUgcnVubmluZyB0aGUgUiBjb2Rlcy5cbmxpYnJhcnkoZ2dwbG90MilcbmxpYnJhcnkocmVzaGFwZTIpXG5saWJyYXJ5KHN1cnZpdmFsKVxuaW5zdGFsbC5wYWNrYWdlcyhcInBwY29yXCIpXG5gYGAifQ== -->
+<pre class="r"><code># TIMER analysis requires a number of R packages, including: ggplot2, ppcor, reshape2, survival, qvalue and CHAT. Make sure you have installed these packages before running the R codes.
+library(ggplot2)
+library(reshape2)
+library(survival)
+install.packages(&quot;ppcor&quot;)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiRXJyb3IgaW4gaW5zdGFsbC5wYWNrYWdlcyA6IFVwZGF0aW5nIGxvYWRlZCBwYWNrYWdlc1xuIn0= -->
+<pre><code>Error in install.packages : Updating loaded packages</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxubGlicmFyeShwcGNvcilcbiMgZGVwZW5kZW5jaWVzIGZvciBDSEFUXG5iaW9jTGl0ZShcIkROQWNvcHlcIilcbmBgYCJ9 -->
+<pre class="r"><code>library(ppcor)
+# dependencies for CHAT
+biocLite(&quot;DNAcopy&quot;)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiQmlvQ19taXJyb3I6IGh0dHBzOi8vYmlvY29uZHVjdG9yLm9yZ1xuVXNpbmcgQmlvY29uZHVjdG9yIDMuNiAoQmlvY0luc3RhbGxlciAxLjI4LjApLCBSIDMuNC4zICgyMDE3LTExLTMwKS5cbkluc3RhbGxpbmcgcGFja2FnZShzKSAnRE5BY29weSdcbnRyeWluZyBVUkwgJ2h0dHBzOi8vYmlvY29uZHVjdG9yLm9yZy9wYWNrYWdlcy8zLjYvYmlvYy9iaW4vbWFjb3N4L2VsLWNhcGl0YW4vY29udHJpYi8zLjQvRE5BY29weV8xLjUyLjAudGd6J1xuQ29udGVudCB0eXBlICdhcHBsaWNhdGlvbi94LWd6aXAnIGxlbmd0aCAzODI5MjIgYnl0ZXMgKDM3MyBLQilcbj09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09XG5kb3dubG9hZGVkIDM3MyBLQlxuIn0= -->
+<pre><code>BioC_mirror: https://bioconductor.org
+Using Bioconductor 3.6 (BiocInstaller 1.28.0), R 3.4.3 (2017-11-30).
+Installing package(s) 'DNAcopy'
+trying URL 'https://bioconductor.org/packages/3.6/bioc/bin/macosx/el-capitan/contrib/3.4/DNAcopy_1.52.0.tgz'
+Content type 'application/x-gzip' length 382922 bytes (373 KB)
+==================================================
+downloaded 373 KB</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiXG5UaGUgZG93bmxvYWRlZCBiaW5hcnkgcGFja2FnZXMgYXJlIGluXG5cdC92YXIvZm9sZGVycy92di9yXzFwczMxczJwbDFwY3B6anRtejRjaHcwMDAwZ24vVC8vUnRtcHR6c1ltVC9kb3dubG9hZGVkX3BhY2thZ2VzXG4ifQ== -->
+<pre><code>
+The downloaded binary packages are in
+    /var/folders/vv/r_1ps31s2pl1pcpzjtmz4chw0000gn/T//RtmptzsYmT/downloaded_packages</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuaW5zdGFsbC5wYWNrYWdlcyhcInBwY29yXCIpXG5gYGAifQ== -->
+<pre class="r"><code>install.packages(&quot;ppcor&quot;)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoidHJ5aW5nIFVSTCAnaHR0cHM6Ly9jcmFuLnJzdHVkaW8uY29tL2Jpbi9tYWNvc3gvZWwtY2FwaXRhbi9jb250cmliLzMuNC9wcGNvcl8xLjEudGd6J1xuQ29udGVudCB0eXBlICdhcHBsaWNhdGlvbi94LWd6aXAnIGxlbmd0aCAyMzY5MSBieXRlcyAoMjMgS0IpXG49PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PVxuZG93bmxvYWRlZCAyMyBLQlxuIn0= -->
+<pre><code>trying URL 'https://cran.rstudio.com/bin/macosx/el-capitan/contrib/3.4/ppcor_1.1.tgz'
+Content type 'application/x-gzip' length 23691 bytes (23 KB)
+==================================================
+downloaded 23 KB</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiXG5UaGUgZG93bmxvYWRlZCBiaW5hcnkgcGFja2FnZXMgYXJlIGluXG5cdC92YXIvZm9sZGVycy92di9yXzFwczMxczJwbDFwY3B6anRtejRjaHcwMDAwZ24vVC8vUnRtcHR6c1ltVC9kb3dubG9hZGVkX3BhY2thZ2VzXG4ifQ== -->
+<pre><code>
+The downloaded binary packages are in
+    /var/folders/vv/r_1ps31s2pl1pcpzjtmz4chw0000gn/T//RtmptzsYmT/downloaded_packages</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuaW5zdGFsbC5wYWNrYWdlcyhcIkRQcGFja2FnZVwiKVxuYGBgIn0= -->
+<pre class="r"><code>install.packages(&quot;DPpackage&quot;)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiRXJyb3IgaW4gaW5zdGFsbC5wYWNrYWdlcyA6IFVwZGF0aW5nIGxvYWRlZCBwYWNrYWdlc1xuIn0= -->
+<pre><code>Error in install.packages : Updating loaded packages</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxubGlicmFyeShETkFjb3B5KVxubGlicmFyeShEUHBhY2thZ2UpXG4jIENIQVQgd2FzIHJlbW92ZWQgZnJvbSB0aGUgQ1JBTiBuZXR3b3JrLCBzbyBhbiBhcmNoaXZlZCAudGFyLmd6IGZpbGUgZnJvbSBodHRwczovL2NyYW4uci1wcm9qZWN0Lm9yZy9zcmMvY29udHJpYi9BcmNoaXZlL0NIQVQvICh2MS4xKSB3YXMgaW5zdGFsbGVkIGluc3RlYWQuIFxuIyBHbyB0byB0aGUgZm9sZGVyIHRvIHdoaWNoIHlvdSBkb3dubG9hZGVkIENIQVQgYW5kIHR5cGUgaW4gXCJSIENNRCBJTlNUQUxMIENIQVRfMS4xLnRhci5nelwiXG5saWJyYXJ5KENIQVQpXG4jIHNvdXJjZShcImh0dHBzOi8vYmlvY29uZHVjdG9yLm9yZy9iaW9jTGl0ZS5SXCIpXG5iaW9jTGl0ZShcInF2YWx1ZVwiKVxuYGBgIn0= -->
+<pre class="r"><code>library(DNAcopy)
+library(DPpackage)
+# CHAT was removed from the CRAN network, so an archived .tar.gz file from https://cran.r-project.org/src/contrib/Archive/CHAT/ (v1.1) was installed instead. 
+# Go to the folder to which you downloaded CHAT and type in &quot;R CMD INSTALL CHAT_1.1.tar.gz&quot;
+library(CHAT)
+# source(&quot;https://bioconductor.org/biocLite.R&quot;)
+biocLite(&quot;qvalue&quot;)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiQmlvQ19taXJyb3I6IGh0dHBzOi8vYmlvY29uZHVjdG9yLm9yZ1xuVXNpbmcgQmlvY29uZHVjdG9yIDMuNiAoQmlvY0luc3RhbGxlciAxLjI4LjApLCBSIDMuNC4zICgyMDE3LTExLTMwKS5cbkluc3RhbGxpbmcgcGFja2FnZShzKSAncXZhbHVlJ1xudHJ5aW5nIFVSTCAnaHR0cHM6Ly9iaW9jb25kdWN0b3Iub3JnL3BhY2thZ2VzLzMuNi9iaW9jL2Jpbi9tYWNvc3gvZWwtY2FwaXRhbi9jb250cmliLzMuNC9xdmFsdWVfMi4xMC4wLnRneidcbkNvbnRlbnQgdHlwZSAnYXBwbGljYXRpb24veC1nemlwJyBsZW5ndGggMjc3OTU4NCBieXRlcyAoMi43IE1CKVxuPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT1cbmRvd25sb2FkZWQgMi43IE1CXG4ifQ== -->
+<pre><code>BioC_mirror: https://bioconductor.org
+Using Bioconductor 3.6 (BiocInstaller 1.28.0), R 3.4.3 (2017-11-30).
+Installing package(s) 'qvalue'
+trying URL 'https://bioconductor.org/packages/3.6/bioc/bin/macosx/el-capitan/contrib/3.4/qvalue_2.10.0.tgz'
+Content type 'application/x-gzip' length 2779584 bytes (2.7 MB)
+==================================================
+downloaded 2.7 MB</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiXG5UaGUgZG93bmxvYWRlZCBiaW5hcnkgcGFja2FnZXMgYXJlIGluXG5cdC92YXIvZm9sZGVycy92di9yXzFwczMxczJwbDFwY3B6anRtejRjaHcwMDAwZ24vVC8vUnRtcHR6c1ltVC9kb3dubG9hZGVkX3BhY2thZ2VzXG4ifQ== -->
+<pre><code>
+The downloaded binary packages are in
+    /var/folders/vv/r_1ps31s2pl1pcpzjtmz4chw0000gn/T//RtmptzsYmT/downloaded_packages</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuaW5zdGFsbC5wYWNrYWdlcyhcIkRQcGFja2FnZVwiKVxuYGBgIn0= -->
+<pre class="r"><code>install.packages(&quot;DPpackage&quot;)</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-output-begin eyJkYXRhIjoidHJ5aW5nIFVSTCAnaHR0cHM6Ly9jcmFuLnJzdHVkaW8uY29tL2Jpbi9tYWNvc3gvZWwtY2FwaXRhbi9jb250cmliLzMuNC9EUHBhY2thZ2VfMS4xLTcuNC50Z3onXG5Db250ZW50IHR5cGUgJ2FwcGxpY2F0aW9uL3gtZ3ppcCcgbGVuZ3RoIDIyNzA5NjQgYnl0ZXMgKDIuMiBNQilcbj09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09XG5kb3dubG9hZGVkIDIuMiBNQlxuIn0= -->
+<pre><code>trying URL 'https://cran.rstudio.com/bin/macosx/el-capitan/contrib/3.4/DPpackage_1.1-7.4.tgz'
+Content type 'application/x-gzip' length 2270964 bytes (2.2 MB)
+==================================================
+downloaded 2.2 MB</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-output-begin eyJkYXRhIjoiXG5UaGUgZG93bmxvYWRlZCBiaW5hcnkgcGFja2FnZXMgYXJlIGluXG5cdC92YXIvZm9sZGVycy92di9yXzFwczMxczJwbDFwY3B6anRtejRjaHcwMDAwZ24vVC8vUnRtcHR6c1ltVC9kb3dubG9hZGVkX3BhY2thZ2VzXG4ifQ== -->
+<pre><code>
+The downloaded binary packages are in
+    /var/folders/vv/r_1ps31s2pl1pcpzjtmz4chw0000gn/T//RtmptzsYmT/downloaded_packages</code></pre>
+<!-- rnb-output-end -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxubGlicmFyeShxdmFsdWUpXG5gYGAifQ== -->
+<pre class="r"><code>library(qvalue)</code></pre>
+<!-- rnb-source-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
-<p>Add a new chunk by clicking the <em>Insert Chunk</em> button on the toolbar or by pressing <em>Cmd+Option+I</em>.</p>
-<p>When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the <em>Preview</em> button or press <em>Cmd+Shift+K</em> to preview the HTML file).</p>
-<p>The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike <em>Knit</em>, <em>Preview</em> does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.</p>
+</div>
+<div id="gdac-data" class="section level2">
+<h2>GDAC data</h2>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyBQbGVhc2UgZmlyc3QgZG93bmxvYWQgYWxsIHRoZSBkYXRhIG1hdHJpY2VzIChwcmVmZXJyYWJseSBSU0VNLCBpZiBub3QgYXZhaWxhYmxlLCB0aGVuIFJQS00pIGFuZCB0cmFuc2Zvcm0gdGhlbSBpbnRvIFhYWFguUmRhdGEgZm9ybWF0ICh3aGVyZSBYWFhYIGlzIHRoZSBjYW5jZXIgYWJicmV2aWF0aW9uLCBpbiBsb3dlciBjYXNlLCBzYW1lIGJlbG93KSwgdGhlbiBkZXBvc2l0IGludG8gYSBmb2xkZXIgbmFtZWQgXCJSTkFzZXFcIi5cbiMgZG93bmxvYWRlZCBHREFDIGZpbGVzOyBub3cgdG8gbG9hZCB0aGVtXG5icmNhIDwtIHJlYWQudGFibGUoZmlsZSA9IFwiLi4vLi4vZGF0YXNldHMvZ2RhY19maXJlaG9zZS9nZGFjLmJyb2FkaW5zdGl0dXRlLm9yZ19CUkNBLk1lcmdlX3JuYXNlcXYyX19pbGx1bWluYWhpc2VxX3JuYXNlcXYyX191bmNfZWR1X19MZXZlbF8zX19SU0VNX2dlbmVzX25vcm1hbGl6ZWRfX2RhdGEuTGV2ZWxfMy4yMDE2MDEyODAwLjAuMC9CUkNBLnJuYXNlcXYyX19pbGx1bWluYWhpc2VxX3JuYXNlcXYyX191bmNfZWR1X19MZXZlbF8zX19SU0VNX2dlbmVzX25vcm1hbGl6ZWRfX2RhdGEuZGF0YS50eHRcIixoZWFkZXIgPSBUUlVFLHNlcCA9IFwiXFx0XCIscm93Lm5hbWVzID0gMSlcblxuYGBgIn0= -->
+<pre class="r"><code># Please first download all the data matrices (preferrably RSEM, if not available, then RPKM) and transform them into XXXX.Rdata format (where XXXX is the cancer abbreviation, in lower case, same below), then deposit into a folder named &quot;RNAseq&quot;.
+# downloaded GDAC files; now to load them
+brca &lt;- read.table(file = &quot;../../datasets/gdac_firehose/gdac.broadinstitute.org_BRCA.Merge_rnaseqv2__illuminahiseq_rnaseqv2__unc_edu__Level_3__RSEM_genes_normalized__data.Level_3.2016012800.0.0/BRCA.rnaseqv2__illuminahiseq_rnaseqv2__unc_edu__Level_3__RSEM_genes_normalized__data.data.txt&quot;,header = TRUE,sep = &quot;\t&quot;,row.names = 1)
+</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+</div>
+<div id="clinical-data" class="section level2">
+<h2>Clinical data</h2>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyBDbGluaWNhbCBkYXRhIGZvciBhbGwgY2FuY2VycyBzaG91bGQgYmUgZG93bmxvYWRlZCBmcm9tIFRDR0EgcHVibGljIGZ0cDogaHR0cHM6Ly90Y2dhLWRhdGEubmNpLm5paC5nb3YvdGNnYWZpbGVzL2Z0cF9hdXRoL2Rpc3Ryb19mdHB1c2Vycy9hbm9ueW1vdXMvdHVtb3IvWFhYWC9iY3IvbmF0aW9ud2lkZWNoaWxkcmVucy5vcmcvYmlvL2NsaW4vLiBSZXBsYWNlIFwiWFhYWFwiIHdpdGggdGhlIGRlc2lyZWQgY2FuY2VyIGFiYnJldmlhdGlvbiBhbmQgc2VsZWN0IHRoZSBsYXRlc3QgdmVyc2lvbiBvZiB0aGUgY2xpbmljYWwgZmlsZSBlbmRpbmcgd2l0aCBcInBhdGllbnRfWFhYWC50eHRcIi4gUGxlYXNlIHB1dCBhbGwgdGhlIGNsaW5pY2FsIGRhdGEgZmlsZXMgaW50byBhIGZvbGRlciBuYW1lZCBcIkNsaW5pY2FsXCIuIFxuYGBgIn0= -->
+<pre class="r"><code># Clinical data for all cancers should be downloaded from TCGA public ftp: https://tcga-data.nci.nih.gov/tcgafiles/ftp_auth/distro_ftpusers/anonymous/tumor/XXXX/bcr/nationwidechildrens.org/bio/clin/. Replace &quot;XXXX&quot; with the desired cancer abbreviation and select the latest version of the clinical file ending with &quot;patient_XXXX.txt&quot;. Please put all the clinical data files into a folder named &quot;Clinical&quot;. </code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+</div>
+<div id="purity-information" class="section level2">
+<h2>Purity information</h2>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyBUSU1FUiByZXF1aXJlcyB0dW1vciBwdXJpdHkgaW5mb3JtYXRpb24gZm9yIGFjdXJhdGUgZXN0aW1hdGlvbiBvZiBpbW11bmUtcmVsYXRlZCBnZW5lcy4gUHVyaXR5IGlzIGF2YWlsYWJsZSBpbiB0aGUgUmVsYXRlZCBkYXRhIGZpbGVzLiBBZnRlciBkb3dubG9hZGluZyB0aGUgemlwIGZpbGUsIHBsZWFzZSB1bnppcCB0aGUgcHVyaXR5IGVzdGltYXRpb24gZmlsZXMgaW50byBhIGZvbGRlciBuYW1lZCBcIkFHUFwiLlxuYGBgIn0= -->
+<pre class="r"><code># TIMER requires tumor purity information for acurate estimation of immune-related genes. Purity is available in the Related data files. After downloading the zip file, please unzip the purity estimation files into a folder named &quot;AGP&quot;.</code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
+</div>
+<div id="immune-signatures" class="section level2">
+<h2>Immune signatures</h2>
+<!-- rnb-text-end -->
+<!-- rnb-chunk-begin -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuIyBUSU1FUiBhbHNvIHVzZXMgcmVmZXJlbmNlIGltbXVuZSBjZWxsIGV4cHJlc3Npb24gZmlsZXMgdG8gZXN0aW1hdGUgdGhlIGltbXVuZSBpbmZpbHRyYXRpb24gbGV2ZWxzLiBUaGVzZSBmaWxlcyBhcmUgYXZhaWxhYmxlIGluIHRoZSBSZWxhdGVkIGRhdGEgZmlsZXMgMS0zLiBQbGVhc2UgZG93bmxvYWQgdGhlc2UgZmlsZXMgYW5kIHB1dCB0aGVtIGludG8gYSBmb2xkZXIgbmFtZWQgXCJpbW11bmVfZGF0YXNldHNcIi4gXG4jIFBsZWFzZSBhbHNvIGRvd25sb2FkIHRoZSBTdXBwbGVtZW50YXIgVGFibGUgUzUgZnJvbSBSb29uZXkgZXQgYWwuLCAyMDE1LCBDZWxsIGFuZCBjb252ZXJ0IGl0IHRvIGEgdGV4dCBmaWxlIChtbWM1LnR4dCkgYW5kIHBsYWNlIGl0IGludG8gYSBmb2xkZXIgbmFtZWQgXCJ2aXJ1c1wiLiBcbmBgYCJ9 -->
+<pre class="r"><code># TIMER also uses reference immune cell expression files to estimate the immune infiltration levels. These files are available in the Related data files 1-3. Please download these files and put them into a folder named &quot;immune_datasets&quot;. 
+# Please also download the Supplementar Table S5 from Rooney et al., 2015, Cell and convert it to a text file (mmc5.txt) and place it into a folder named &quot;virus&quot;. </code></pre>
+<!-- rnb-source-end -->
+<!-- rnb-chunk-end -->
+<!-- rnb-text-begin -->
 <!-- rnb-text-end -->
 </div>
+</div>
 
-<div id="rmd-source-code">LS0tCnRpdGxlOiAiVElNRVIgYW5hbHlzaXMiCm91dHB1dDogaHRtbF9ub3RlYm9vawotLS0KClRoaXMgbm90ZWJvb2sgaW1wbGVtZW50cyBUSU1FUiB0byBhbmFseXplIGltbXVuZSBpbmZpbHRyYXRlIGNvbXBvc2l0aW9uIHdpdGhpbiBUQ0dBIHNhbXBsZXMuIFRJTUVSIGhhcyBhIHdlYiBwb3J0YWwgdGhhdCBjb3VsZCBnaXZlIHVzIHRoZSByZXN1bHRzIGZvciBlYWNoIG9mIHRoZSBkZXNpcmVkIHR1bW9yIHR5cGVzIChPdmFyaWFuLCBCcmVhc3QsIENvbG9uLCBhbmQgTHVuZyksIGJ1dCB3ZSBhcmUgZ29pbmcgdG8gbWFudWFsbHkgcmUtcnVuIHRoZSBhbmFseXNpcyBzbyB0aGF0IHdlIGNhbiBjb21wYXJlIHRoZSBleHByZXNzaW9uIG9mIHRoZSB0aHJlZSBwYXBlcnMnIGh1bWFuIElGTi12aXJhbCBzaWduYXR1cmVzIHRvIHRoZSBlbnJpY2htZW50IG9mIGRpZmZlcmVudCBpbW11bmUgc3Vic2V0cyBpbiBUQ0dBIHNhbXBsZXMgZm9yIHRoZSBzYW1lIGRhdGEuIE9uIHRoZSBvdGhlciBoYW5kLCBJIGNhbiBkb3dubG9hZCB0aGUgQ294IFBIIG1vZGVsIG91dHB1dCBmcm9tIGh0dHBzOi8vY2lzdHJvbWUuc2hpbnlhcHBzLmlvL3RpbWVyLwoKIyBTZXR1cAoKV2Ugd2lsbCBsb2NhdGUgdGhlIFRJTUVSIHNjcmlwdCAod2Ugd29uJ3Qgc291cmNlIGl0LCBiZWNhdXNlIGRvaW5nIHNvIHJ1bnMgdGhlIHNjcmlwdCByaWdodCBhd2F5KSwgZm9ybWF0IHRoZSBkYXRhIGFzIHRoZSB0dXRvcmlhbCBhc2tzICh0dXRvcmlhbCBpcyBoZXJlOiBodHRwOi8vY2lzdHJvbWUub3JnL1RJTUVSL21pc2MvcmVhZG1lLnR4dCkKClRoZSBwcmVwYXJhdGlvbiByZXF1aXJlZApgYGAKVElNRVIgYW5hbGF5c2lzIHdhcyBhbGwgcGVyZm9ybWVkIG9uIHRoZSBDYW5jZXIgR2Vub21lIEF0bGFzIChUQ0dBKSBzYW1wbGVzLiBUaGUgZ2VuZSBleHByZXNzaW9uIGRhdGEgcHJvZmlsZWQgYnkgUk5BLXNlcSBvciBBZmZ5bWV0cml4IGFycmF5cyBhcmUgYWNjZXNzaWJsZSB0aHJvdWdoIEdEQUMgZmlyZWhvc2UgKGh0dHBzOi8vZ2RhYy5icm9hZGluc3RpdHV0ZS5vcmcpLiBQbGVhc2UgZmlyc3QgZG93bmxvYWQgYWxsIHRoZSBkYXRhIG1hdHJpY2VzIChwcmVmZXJyYWJseSBSU0VNLCBpZiBub3QgYXZhaWxhYmxlLCB0aGVuIFJQS00pIGFuZCB0cmFuc2Zvcm0gdGhlbSBpbnRvIFhYWFguUmRhdGEgZm9ybWF0ICh3aGVyZSBYWFhYIGlzIHRoZSBjYW5jZXIgYWJicmV2aWF0aW9uLCBpbiBsb3dlciBjYXNlLCBzYW1lIGJlbG93KSwgdGhlbiBkZXBvc2l0IGludG8gYSBmb2xkZXIgbmFtZWQgIlJOQXNlcSIuIENsaW5pY2FsIGRhdGEgZm9yIGFsbCBjYW5jZXJzIHNob3VsZCBiZSBkb3dubG9hZGVkIGZyb20gVENHQSBwdWJsaWMgZnRwOiBodHRwczovL3RjZ2EtZGF0YS5uY2kubmloLmdvdi90Y2dhZmlsZXMvZnRwX2F1dGgvZGlzdHJvX2Z0cHVzZXJzL2Fub255bW91cy90dW1vci9YWFhYL2Jjci9uYXRpb253aWRlY2hpbGRyZW5zLm9yZy9iaW8vY2xpbi8uIFJlcGxhY2UgIlhYWFgiIHdpdGggdGhlIGRlc2lyZWQgY2FuY2VyIGFiYnJldmlhdGlvbiBhbmQgc2VsZWN0IHRoZSBsYXRlc3QgdmVyc2lvbiBvZiB0aGUgY2xpbmljYWwgZmlsZSBlbmRpbmcgd2l0aCAicGF0aWVudF9YWFhYLnR4dCIuIFBsZWFzZSBwdXQgYWxsIHRoZSBjbGluaWNhbCBkYXRhIGZpbGVzIGludG8gYSBmb2xkZXIgbmFtZWQgIkNsaW5pY2FsIi4gVElNRVIgcmVxdWlyZXMgdHVtb3IgcHVyaXR5IGluZm9ybWF0aW9uIGZvciBhY3VyYXRlIGVzdGltYXRpb24gb2YgaW1tdW5lLXJlbGF0ZWQgZ2VuZXMuIFB1cml0eSBpcyBhdmFpbGFibGUgaW4gdGhlIFJlbGF0ZWQgZGF0YSBmaWxlcy4gQWZ0ZXIgZG93bmxvYWRpbmcgdGhlIHppcCBmaWxlLCBwbGVhc2UgdW56aXAgdGhlIHB1cml0eSBlc3RpbWF0aW9uIGZpbGVzIGludG8gYSBmb2xkZXIgbmFtZWQgIkFHUCIuIFRJTUVSIGFsc28gdXNlcyByZWZlcmVuY2UgaW1tdW5lIGNlbGwgZXhwcmVzc2lvbiBmaWxlcyB0byBlc3RpbWF0ZSB0aGUgaW1tdW5lIGluZmlsdHJhdGlvbiBsZXZlbHMuIFRoZXNlIGZpbGVzIGFyZSBhdmFpbGFibGUgaW4gdGhlIFJlbGF0ZWQgZGF0YSBmaWxlcyAxLTMuIFBsZWFzZSBkb3dubG9hZCB0aGVzZSBmaWxlcyBhbmQgcHV0IHRoZW0gaW50byBhIGZvbGRlciBuYW1lZCAiaW1tdW5lX2RhdGFzZXRzIi4gUGxlYXNlIGFsc28gZG93bmxvYWQgdGhlIFN1cHBsZW1lbnRhciBUYWJsZSBTNSBmcm9tIFJvb25leSBldCBhbC4sIDIwMTUsIENlbGwgYW5kIGNvbnZlcnQgaXQgdG8gYSB0ZXh0IGZpbGUgKG1tYzUudHh0KSBhbmQgcGxhY2UgaXQgaW50byBhIGZvbGRlciBuYW1lZCAidmlydXMiLiAKYGBgCgoKYGBge3J9CgpgYGAKCkFkZCBhIG5ldyBjaHVuayBieSBjbGlja2luZyB0aGUgKkluc2VydCBDaHVuayogYnV0dG9uIG9uIHRoZSB0b29sYmFyIG9yIGJ5IHByZXNzaW5nICpDbWQrT3B0aW9uK0kqLgoKV2hlbiB5b3Ugc2F2ZSB0aGUgbm90ZWJvb2ssIGFuIEhUTUwgZmlsZSBjb250YWluaW5nIHRoZSBjb2RlIGFuZCBvdXRwdXQgd2lsbCBiZSBzYXZlZCBhbG9uZ3NpZGUgaXQgKGNsaWNrIHRoZSAqUHJldmlldyogYnV0dG9uIG9yIHByZXNzICpDbWQrU2hpZnQrSyogdG8gcHJldmlldyB0aGUgSFRNTCBmaWxlKS4gCgpUaGUgcHJldmlldyBzaG93cyB5b3UgYSByZW5kZXJlZCBIVE1MIGNvcHkgb2YgdGhlIGNvbnRlbnRzIG9mIHRoZSBlZGl0b3IuIENvbnNlcXVlbnRseSwgdW5saWtlICpLbml0KiwgKlByZXZpZXcqIGRvZXMgbm90IHJ1biBhbnkgUiBjb2RlIGNodW5rcy4gSW5zdGVhZCwgdGhlIG91dHB1dCBvZiB0aGUgY2h1bmsgd2hlbiBpdCB3YXMgbGFzdCBydW4gaW4gdGhlIGVkaXRvciBpcyBkaXNwbGF5ZWQuCgo=</div>
+<div id="rmd-source-code">LS0tCnRpdGxlOiAiVElNRVIgYW5hbHlzaXMiCm91dHB1dDogaHRtbF9ub3RlYm9vawotLS0KClRoaXMgbm90ZWJvb2sgaW1wbGVtZW50cyBUSU1FUiB0byBhbmFseXplIGltbXVuZSBpbmZpbHRyYXRlIGNvbXBvc2l0aW9uIHdpdGhpbiBUQ0dBIHNhbXBsZXMuIFRJTUVSIGhhcyBhIHdlYiBwb3J0YWwgdGhhdCBjb3VsZCBnaXZlIHVzIHRoZSByZXN1bHRzIGZvciBlYWNoIG9mIHRoZSBkZXNpcmVkIHR1bW9yIHR5cGVzIChPdmFyaWFuLCBCcmVhc3QsIENvbG9uLCBhbmQgTHVuZyksIGJ1dCB3ZSBhcmUgZ29pbmcgdG8gbWFudWFsbHkgcmUtcnVuIHRoZSBhbmFseXNpcyBzbyB0aGF0IHdlIGNhbiBjb21wYXJlIHRoZSBleHByZXNzaW9uIG9mIHRoZSB0aHJlZSBwYXBlcnMnIGh1bWFuIElGTi12aXJhbCBzaWduYXR1cmVzIHRvIHRoZSBlbnJpY2htZW50IG9mIGRpZmZlcmVudCBpbW11bmUgc3Vic2V0cyBpbiBUQ0dBIHNhbXBsZXMgZm9yIHRoZSBzYW1lIGRhdGEuIE9uIHRoZSBvdGhlciBoYW5kLCBJIGNhbiBkb3dubG9hZCB0aGUgQ294IFBIIG1vZGVsIG91dHB1dCBmcm9tIGh0dHBzOi8vY2lzdHJvbWUuc2hpbnlhcHBzLmlvL3RpbWVyLwoKIyBTZXR1cAoKV2Ugd2lsbCBsb2NhdGUgdGhlIFRJTUVSIHNjcmlwdCAod2Ugd29uJ3Qgc291cmNlIGl0LCBiZWNhdXNlIGRvaW5nIHNvIHJ1bnMgdGhlIHNjcmlwdCByaWdodCBhd2F5KSwgZm9ybWF0IHRoZSBkYXRhIGFzIHRoZSB0dXRvcmlhbCBhc2tzICh0dXRvcmlhbCBpcyBoZXJlOiBodHRwOi8vY2lzdHJvbWUub3JnL1RJTUVSL21pc2MvcmVhZG1lLnR4dCkKClRoZSBwcmVwYXJhdGlvbiByZXF1aXJlZApgYGAKVElNRVIgYW5hbGF5c2lzIHdhcyBhbGwgcGVyZm9ybWVkIG9uIHRoZSBDYW5jZXIgR2Vub21lIEF0bGFzIChUQ0dBKSBzYW1wbGVzLiBUaGUgZ2VuZSBleHByZXNzaW9uIGRhdGEgcHJvZmlsZWQgYnkgUk5BLXNlcSBvciBBZmZ5bWV0cml4IGFycmF5cyBhcmUgYWNjZXNzaWJsZSB0aHJvdWdoIEdEQUMgZmlyZWhvc2UgKGh0dHBzOi8vZ2RhYy5icm9hZGluc3RpdHV0ZS5vcmcpLiBQbGVhc2UgZmlyc3QgZG93bmxvYWQgYWxsIHRoZSBkYXRhIG1hdHJpY2VzIChwcmVmZXJyYWJseSBSU0VNLCBpZiBub3QgYXZhaWxhYmxlLCB0aGVuIFJQS00pIGFuZCB0cmFuc2Zvcm0gdGhlbSBpbnRvIFhYWFguUmRhdGEgZm9ybWF0ICh3aGVyZSBYWFhYIGlzIHRoZSBjYW5jZXIgYWJicmV2aWF0aW9uLCBpbiBsb3dlciBjYXNlLCBzYW1lIGJlbG93KSwgdGhlbiBkZXBvc2l0IGludG8gYSBmb2xkZXIgbmFtZWQgIlJOQXNlcSIuIENsaW5pY2FsIGRhdGEgZm9yIGFsbCBjYW5jZXJzIHNob3VsZCBiZSBkb3dubG9hZGVkIGZyb20gVENHQSBwdWJsaWMgZnRwOiBodHRwczovL3RjZ2EtZGF0YS5uY2kubmloLmdvdi90Y2dhZmlsZXMvZnRwX2F1dGgvZGlzdHJvX2Z0cHVzZXJzL2Fub255bW91cy90dW1vci9YWFhYL2Jjci9uYXRpb253aWRlY2hpbGRyZW5zLm9yZy9iaW8vY2xpbi8uIFJlcGxhY2UgIlhYWFgiIHdpdGggdGhlIGRlc2lyZWQgY2FuY2VyIGFiYnJldmlhdGlvbiBhbmQgc2VsZWN0IHRoZSBsYXRlc3QgdmVyc2lvbiBvZiB0aGUgY2xpbmljYWwgZmlsZSBlbmRpbmcgd2l0aCAicGF0aWVudF9YWFhYLnR4dCIuIFBsZWFzZSBwdXQgYWxsIHRoZSBjbGluaWNhbCBkYXRhIGZpbGVzIGludG8gYSBmb2xkZXIgbmFtZWQgIkNsaW5pY2FsIi4gVElNRVIgcmVxdWlyZXMgdHVtb3IgcHVyaXR5IGluZm9ybWF0aW9uIGZvciBhY3VyYXRlIGVzdGltYXRpb24gb2YgaW1tdW5lLXJlbGF0ZWQgZ2VuZXMuIFB1cml0eSBpcyBhdmFpbGFibGUgaW4gdGhlIFJlbGF0ZWQgZGF0YSBmaWxlcy4gQWZ0ZXIgZG93bmxvYWRpbmcgdGhlIHppcCBmaWxlLCBwbGVhc2UgdW56aXAgdGhlIHB1cml0eSBlc3RpbWF0aW9uIGZpbGVzIGludG8gYSBmb2xkZXIgbmFtZWQgIkFHUCIuIFRJTUVSIGFsc28gdXNlcyByZWZlcmVuY2UgaW1tdW5lIGNlbGwgZXhwcmVzc2lvbiBmaWxlcyB0byBlc3RpbWF0ZSB0aGUgaW1tdW5lIGluZmlsdHJhdGlvbiBsZXZlbHMuIFRoZXNlIGZpbGVzIGFyZSBhdmFpbGFibGUgaW4gdGhlIFJlbGF0ZWQgZGF0YSBmaWxlcyAxLTMuIFBsZWFzZSBkb3dubG9hZCB0aGVzZSBmaWxlcyBhbmQgcHV0IHRoZW0gaW50byBhIGZvbGRlciBuYW1lZCAiaW1tdW5lX2RhdGFzZXRzIi4gUGxlYXNlIGFsc28gZG93bmxvYWQgdGhlIFN1cHBsZW1lbnRhciBUYWJsZSBTNSBmcm9tIFJvb25leSBldCBhbC4sIDIwMTUsIENlbGwgYW5kIGNvbnZlcnQgaXQgdG8gYSB0ZXh0IGZpbGUgKG1tYzUudHh0KSBhbmQgcGxhY2UgaXQgaW50byBhIGZvbGRlciBuYW1lZCAidmlydXMiLiAKYGBgCiMjIHBhY2thZ2VzCgpgYGB7cn0KIyBUSU1FUiBhbmFseXNpcyByZXF1aXJlcyBhIG51bWJlciBvZiBSIHBhY2thZ2VzLCBpbmNsdWRpbmc6IGdncGxvdDIsIHBwY29yLCByZXNoYXBlMiwgc3Vydml2YWwsIHF2YWx1ZSBhbmQgQ0hBVC4gTWFrZSBzdXJlIHlvdSBoYXZlIGluc3RhbGxlZCB0aGVzZSBwYWNrYWdlcyBiZWZvcmUgcnVubmluZyB0aGUgUiBjb2Rlcy4KbGlicmFyeShnZ3Bsb3QyKQpsaWJyYXJ5KHJlc2hhcGUyKQpsaWJyYXJ5KHN1cnZpdmFsKQppbnN0YWxsLnBhY2thZ2VzKCJwcGNvciIpCmxpYnJhcnkocHBjb3IpCiMgZGVwZW5kZW5jaWVzIGZvciBDSEFUCmJpb2NMaXRlKCJETkFjb3B5IikKaW5zdGFsbC5wYWNrYWdlcygiRFBwYWNrYWdlIikKbGlicmFyeShETkFjb3B5KQpsaWJyYXJ5KERQcGFja2FnZSkKIyBDSEFUIHdhcyByZW1vdmVkIGZyb20gdGhlIENSQU4gbmV0d29yaywgc28gYW4gYXJjaGl2ZWQgLnRhci5neiBmaWxlIGZyb20gaHR0cHM6Ly9jcmFuLnItcHJvamVjdC5vcmcvc3JjL2NvbnRyaWIvQXJjaGl2ZS9DSEFULyAodjEuMSkgd2FzIGluc3RhbGxlZCBpbnN0ZWFkLiAKIyBHbyB0byB0aGUgZm9sZGVyIHRvIHdoaWNoIHlvdSBkb3dubG9hZGVkIENIQVQgYW5kIHR5cGUgaW4gIlIgQ01EIElOU1RBTEwgQ0hBVF8xLjEudGFyLmd6IgpsaWJyYXJ5KENIQVQpCiMgc291cmNlKCJodHRwczovL2Jpb2NvbmR1Y3Rvci5vcmcvYmlvY0xpdGUuUiIpCmJpb2NMaXRlKCJxdmFsdWUiKQpsaWJyYXJ5KHF2YWx1ZSkKYGBgCgojIyBHREFDIGRhdGEKCmBgYHtyfQojIFBsZWFzZSBmaXJzdCBkb3dubG9hZCBhbGwgdGhlIGRhdGEgbWF0cmljZXMgKHByZWZlcnJhYmx5IFJTRU0sIGlmIG5vdCBhdmFpbGFibGUsIHRoZW4gUlBLTSkgYW5kIHRyYW5zZm9ybSB0aGVtIGludG8gWFhYWC5SZGF0YSBmb3JtYXQgKHdoZXJlIFhYWFggaXMgdGhlIGNhbmNlciBhYmJyZXZpYXRpb24sIGluIGxvd2VyIGNhc2UsIHNhbWUgYmVsb3cpLCB0aGVuIGRlcG9zaXQgaW50byBhIGZvbGRlciBuYW1lZCAiUk5Bc2VxIi4KIyBkb3dubG9hZGVkIEdEQUMgZmlsZXM7IG5vdyB0byBsb2FkIHRoZW0KCiMgQnJlYXN0CmJyY2FfZ2RhYyA8LSByZWFkLnRhYmxlKGZpbGUgPSAiLi4vLi4vZGF0YXNldHMvZ2RhY19maXJlaG9zZS9nZGFjLmJyb2FkaW5zdGl0dXRlLm9yZ19CUkNBLk1lcmdlX3JuYXNlcXYyX19pbGx1bWluYWhpc2VxX3JuYXNlcXYyX191bmNfZWR1X19MZXZlbF8zX19SU0VNX2dlbmVzX25vcm1hbGl6ZWRfX2RhdGEuTGV2ZWxfMy4yMDE2MDEyODAwLjAuMC9CUkNBLnJuYXNlcXYyX19pbGx1bWluYWhpc2VxX3JuYXNlcXYyX191bmNfZWR1X19MZXZlbF8zX19SU0VNX2dlbmVzX25vcm1hbGl6ZWRfX2RhdGEuZGF0YS50eHQiLGhlYWRlciA9IFRSVUUsc2VwID0gIlx0Iixyb3cubmFtZXMgPSAxKQpzYXZlKGJyY2FfZ2RhYywgZmlsZSA9ICIuL1JOQXNlcS9icmNhLlJEYXRhIikKCiMgQ29sb24KY29hZF9nZGFjIDwtIHJlYWQudGFibGUoZmlsZSA9ICIuLi8uLi9kYXRhc2V0cy9nZGFjX2ZpcmVob3NlL2dkYWMuYnJvYWRpbnN0aXR1dGUub3JnX0NPQUQuTWVyZ2Vfcm5hc2VxdjJfX2lsbHVtaW5haGlzZXFfcm5hc2VxdjJfX3VuY19lZHVfX0xldmVsXzNfX1JTRU1fZ2VuZXNfbm9ybWFsaXplZF9fZGF0YS5MZXZlbF8zLjIwMTYwMTI4MDAuMC4wL0NPQUQucm5hc2VxdjJfX2lsbHVtaW5haGlzZXFfcm5hc2VxdjJfX3VuY19lZHVfX0xldmVsXzNfX1JTRU1fZ2VuZXNfbm9ybWFsaXplZF9fZGF0YS5kYXRhLnR4dCIsaGVhZGVyID0gVFJVRSxzZXAgPSAiXHQiLHJvdy5uYW1lcyA9IDEpCnNhdmUoYnJjYV9nZGFjLCBmaWxlID0gIi4vUk5Bc2VxL2NvYWQuUkRhdGEiKQoKIyBMdW5nCmx1c2NfZ2RhYyA8LSByZWFkLnRhYmxlKGZpbGUgPSAiLi4vLi4vZGF0YXNldHMvZ2RhY19maXJlaG9zZS9nZGFjLmJyb2FkaW5zdGl0dXRlLm9yZ19MVVNDLk1lcmdlX3JuYXNlcXYyX19pbGx1bWluYWhpc2VxX3JuYXNlcXYyX191bmNfZWR1X19MZXZlbF8zX19SU0VNX2dlbmVzX25vcm1hbGl6ZWRfX2RhdGEuTGV2ZWxfMy4yMDE2MDEyODAwLjAuMC9MVVNDLnJuYXNlcXYyX19pbGx1bWluYWhpc2VxX3JuYXNlcXYyX191bmNfZWR1X19MZXZlbF8zX19SU0VNX2dlbmVzX25vcm1hbGl6ZWRfX2RhdGEuZGF0YS50eHQiLGhlYWRlciA9IFRSVUUsc2VwID0gIlx0Iixyb3cubmFtZXMgPSAxKQpzYXZlKGJyY2FfZ2RhYywgZmlsZSA9ICIuL1JOQXNlcS9sdXNjLlJEYXRhIikKCiMgT3Zhcmlhbgpvdl9nZGFjIDwtIHJlYWQudGFibGUoZmlsZSA9ICIuLi8uLi9kYXRhc2V0cy9nZGFjX2ZpcmVob3NlL2dkYWMuYnJvYWRpbnN0aXR1dGUub3JnX09WLk1lcmdlX3JuYXNlcXYyX19pbGx1bWluYWhpc2VxX3JuYXNlcXYyX191bmNfZWR1X19MZXZlbF8zX19SU0VNX2dlbmVzX25vcm1hbGl6ZWRfX2RhdGEuTGV2ZWxfMy4yMDE2MDEyODAwLjAuMC9PVi5ybmFzZXF2Ml9faWxsdW1pbmFoaXNlcV9ybmFzZXF2Ml9fdW5jX2VkdV9fTGV2ZWxfM19fUlNFTV9nZW5lc19ub3JtYWxpemVkX19kYXRhLmRhdGEudHh0IixoZWFkZXIgPSBUUlVFLHNlcCA9ICJcdCIscm93Lm5hbWVzID0gMSkKc2F2ZShicmNhX2dkYWMsIGZpbGUgPSAiLi9STkFzZXEvb3YuUkRhdGEiKQoKYGBgCgoKIyMgQ2xpbmljYWwgZGF0YQoKYGBge3J9CiMgQ2xpbmljYWwgZGF0YSBmb3IgYWxsIGNhbmNlcnMgc2hvdWxkIGJlIGRvd25sb2FkZWQgZnJvbSBUQ0dBIHB1YmxpYyBmdHA6IGh0dHBzOi8vdGNnYS1kYXRhLm5jaS5uaWguZ292L3RjZ2FmaWxlcy9mdHBfYXV0aC9kaXN0cm9fZnRwdXNlcnMvYW5vbnltb3VzL3R1bW9yL1hYWFgvYmNyL25hdGlvbndpZGVjaGlsZHJlbnMub3JnL2Jpby9jbGluLy4gUmVwbGFjZSAiWFhYWCIgd2l0aCB0aGUgZGVzaXJlZCBjYW5jZXIgYWJicmV2aWF0aW9uIGFuZCBzZWxlY3QgdGhlIGxhdGVzdCB2ZXJzaW9uIG9mIHRoZSBjbGluaWNhbCBmaWxlIGVuZGluZyB3aXRoICJwYXRpZW50X1hYWFgudHh0Ii4gUGxlYXNlIHB1dCBhbGwgdGhlIGNsaW5pY2FsIGRhdGEgZmlsZXMgaW50byBhIGZvbGRlciBuYW1lZCAiQ2xpbmljYWwiLiAKYGBgCgojIyBQdXJpdHkgaW5mb3JtYXRpb24KCmBgYHtyfQojIFRJTUVSIHJlcXVpcmVzIHR1bW9yIHB1cml0eSBpbmZvcm1hdGlvbiBmb3IgYWN1cmF0ZSBlc3RpbWF0aW9uIG9mIGltbXVuZS1yZWxhdGVkIGdlbmVzLiBQdXJpdHkgaXMgYXZhaWxhYmxlIGluIHRoZSBSZWxhdGVkIGRhdGEgZmlsZXMuIEFmdGVyIGRvd25sb2FkaW5nIHRoZSB6aXAgZmlsZSwgcGxlYXNlIHVuemlwIHRoZSBwdXJpdHkgZXN0aW1hdGlvbiBmaWxlcyBpbnRvIGEgZm9sZGVyIG5hbWVkICJBR1AiLgpgYGAKCgojIyBJbW11bmUgc2lnbmF0dXJlcwoKYGBge3J9CiMgVElNRVIgYWxzbyB1c2VzIHJlZmVyZW5jZSBpbW11bmUgY2VsbCBleHByZXNzaW9uIGZpbGVzIHRvIGVzdGltYXRlIHRoZSBpbW11bmUgaW5maWx0cmF0aW9uIGxldmVscy4gVGhlc2UgZmlsZXMgYXJlIGF2YWlsYWJsZSBpbiB0aGUgUmVsYXRlZCBkYXRhIGZpbGVzIDEtMy4gUGxlYXNlIGRvd25sb2FkIHRoZXNlIGZpbGVzIGFuZCBwdXQgdGhlbSBpbnRvIGEgZm9sZGVyIG5hbWVkICJpbW11bmVfZGF0YXNldHMiLiAKIyBQbGVhc2UgYWxzbyBkb3dubG9hZCB0aGUgU3VwcGxlbWVudGFyIFRhYmxlIFM1IGZyb20gUm9vbmV5IGV0IGFsLiwgMjAxNSwgQ2VsbCBhbmQgY29udmVydCBpdCB0byBhIHRleHQgZmlsZSAobW1jNS50eHQpIGFuZCBwbGFjZSBpdCBpbnRvIGEgZm9sZGVyIG5hbWVkICJ2aXJ1cyIuIApgYGAKCgoKCg==</div>
 
 
 
