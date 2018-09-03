@@ -133,6 +133,12 @@ unified_sig_intersection_canad_sheng <- subset(unified_sig_intersection,
 unified_sig_intersection_chia_canad <- subset(unified_sig_intersection,
                                               chiappinelli & canadas & !shenglafleur)
 
+# save the table
+write.table(x = unified_sig_intersection_all,
+            file = "./unified_sig_intersection_all.txt",
+            sep = "\t",
+            col.names = TRUE,
+            row.names = TRUE)
 print(unified_sig_intersection_all)
 print(unified_sig_intersection_chia_sheng)
 print(unified_sig_intersection_canad_sheng)

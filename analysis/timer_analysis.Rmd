@@ -1,0 +1,27 @@
+---
+title: "TIMER analysis"
+output: html_notebook
+---
+
+This notebook implements TIMER to analyze immune infiltrate composition within TCGA samples. TIMER has a web portal that could give us the results for each of the desired tumor types (Ovarian, Breast, Colon, and Lung), but we are going to manually re-run the analysis so that we can compare the expression of the three papers' human IFN-viral signatures to the enrichment of different immune subsets in TCGA samples for the same data. On the other hand, I can download the Cox PH model output from https://cistrome.shinyapps.io/timer/
+
+# Setup
+
+We will locate the TIMER script (we won't source it, because doing so runs the script right away), format the data as the tutorial asks (tutorial is here: http://cistrome.org/TIMER/misc/readme.txt)
+
+The preparation required
+```
+TIMER analaysis was all performed on the Cancer Genome Atlas (TCGA) samples. The gene expression data profiled by RNA-seq or Affymetrix arrays are accessible through GDAC firehose (https://gdac.broadinstitute.org). Please first download all the data matrices (preferrably RSEM, if not available, then RPKM) and transform them into XXXX.Rdata format (where XXXX is the cancer abbreviation, in lower case, same below), then deposit into a folder named "RNAseq". Clinical data for all cancers should be downloaded from TCGA public ftp: https://tcga-data.nci.nih.gov/tcgafiles/ftp_auth/distro_ftpusers/anonymous/tumor/XXXX/bcr/nationwidechildrens.org/bio/clin/. Replace "XXXX" with the desired cancer abbreviation and select the latest version of the clinical file ending with "patient_XXXX.txt". Please put all the clinical data files into a folder named "Clinical". TIMER requires tumor purity information for acurate estimation of immune-related genes. Purity is available in the Related data files. After downloading the zip file, please unzip the purity estimation files into a folder named "AGP". TIMER also uses reference immune cell expression files to estimate the immune infiltration levels. These files are available in the Related data files 1-3. Please download these files and put them into a folder named "immune_datasets". Please also download the Supplementar Table S5 from Rooney et al., 2015, Cell and convert it to a text file (mmc5.txt) and place it into a folder named "virus". 
+```
+
+
+```{r}
+
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+
