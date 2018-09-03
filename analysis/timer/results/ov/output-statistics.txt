@@ -1,0 +1,42 @@
+ov  output
+
+Number of genes inversely correlated with purity is 2923
+
+Number of immune genes inversely correlated with purity is 644
+
+Test if immune genes are enriched for inverse correlation with purity: 
+
+
+	Fisher's Exact Test for Count Data
+
+data:  
+p-value < 2.2e-16
+alternative hypothesis: true odds ratio is not equal to 1
+95 percent confidence interval:
+ 2.800789 3.445150
+sample estimates:
+odds ratio 
+  3.107229 
+
+QC4: Correlation of Estimated Abundance with Marker Genes
+
+CD19
+
+        B_cell T_cell.CD4 T_cell.CD8   Neutrophil   Macrophage         DC
+[1,] 0.3491752  0.1845403  0.1237207 -0.004862838 -0.004464893 0.08178136
+CD8B
+
+        B_cell T_cell.CD4 T_cell.CD8 Neutrophil Macrophage        DC
+[1,] 0.1056516  0.3452113  0.4848757  0.2762719  0.2390492 0.3926563
+CD163
+
+        B_cell T_cell.CD4 T_cell.CD8 Neutrophil Macrophage        DC
+[1,] -0.181526  0.3464803 0.09325271  0.5581681  0.5071395 0.4773167
+ITGAM
+
+         B_cell T_cell.CD4 T_cell.CD8 Neutrophil Macrophage        DC
+[1,] 0.03153809  0.4696769  0.2400504  0.7036566  0.5336429 0.7301679
+AMPD2
+
+          B_cell T_cell.CD4 T_cell.CD8  Neutrophil  Macrophage         DC
+[1,] -0.05371753  0.0641726 -0.2703515 -0.09211108 -0.05958989 -0.1629506

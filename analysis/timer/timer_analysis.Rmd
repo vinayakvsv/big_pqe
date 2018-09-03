@@ -23,16 +23,20 @@ library(survival)
 install.packages("ppcor")
 library(ppcor)
 # dependencies for CHAT
-biocLite("DNAcopy")
-install.packages("DPpackage")
+# biocLite("DNAcopy")
+# install.packages("DPpackage")
 library(DNAcopy)
 library(DPpackage)
 # CHAT was removed from the CRAN network, so an archived .tar.gz file from https://cran.r-project.org/src/contrib/Archive/CHAT/ (v1.1) was installed instead. 
 # Go to the folder to which you downloaded CHAT and type in "R CMD INSTALL CHAT_1.1.tar.gz"
 library(CHAT)
 # source("https://bioconductor.org/biocLite.R")
-biocLite("qvalue")
+# biocLite("qvalue")
 library(qvalue)
+# reading xlsx files
+library(readxl)
+# install.packages("sva")
+library(sva)
 ```
 
 ## GDAC data
@@ -41,35 +45,52 @@ library(qvalue)
 # Please first download all the data matrices (preferrably RSEM, if not available, then RPKM) and transform them into XXXX.Rdata format (where XXXX is the cancer abbreviation, in lower case, same below), then deposit into a folder named "RNAseq".
 # downloaded GDAC files; now to load them
 
+setwd('/Users/vinayakvsv/big_pqe/analysis/timer/')
 # Breast
 brca_gdac <- read.table(file = "../../datasets/gdac_firehose/gdac.broadinstitute.org_BRCA.Merge_rnaseqv2__illuminahiseq_rnaseqv2__unc_edu__Level_3__RSEM_genes_normalized__data.Level_3.2016012800.0.0/BRCA.rnaseqv2__illuminahiseq_rnaseqv2__unc_edu__Level_3__RSEM_genes_normalized__data.data.txt",header = TRUE,sep = "\t",row.names = 1)
-save(brca_gdac, file = "./RNAseq/brca.RData")
+save(brca_gdac, file = "./data/RNAseq/brcaRNAseq.RData")
 
 # Colon
 coad_gdac <- read.table(file = "../../datasets/gdac_firehose/gdac.broadinstitute.org_COAD.Merge_rnaseqv2__illuminahiseq_rnaseqv2__unc_edu__Level_3__RSEM_genes_normalized__data.Level_3.2016012800.0.0/COAD.rnaseqv2__illuminahiseq_rnaseqv2__unc_edu__Level_3__RSEM_genes_normalized__data.data.txt",header = TRUE,sep = "\t",row.names = 1)
-save(brca_gdac, file = "./RNAseq/coad.RData")
+save(coad_gdac, file = "./data/RNAseq/coadRNAseq.RData")
 
 # Lung
 lusc_gdac <- read.table(file = "../../datasets/gdac_firehose/gdac.broadinstitute.org_LUSC.Merge_rnaseqv2__illuminahiseq_rnaseqv2__unc_edu__Level_3__RSEM_genes_normalized__data.Level_3.2016012800.0.0/LUSC.rnaseqv2__illuminahiseq_rnaseqv2__unc_edu__Level_3__RSEM_genes_normalized__data.data.txt",header = TRUE,sep = "\t",row.names = 1)
-save(brca_gdac, file = "./RNAseq/lusc.RData")
+save(lusc_gdac, file = "./data/RNAseq/luscRNAseq.RData")
 
 # Ovarian
 ov_gdac <- read.table(file = "../../datasets/gdac_firehose/gdac.broadinstitute.org_OV.Merge_rnaseqv2__illuminahiseq_rnaseqv2__unc_edu__Level_3__RSEM_genes_normalized__data.Level_3.2016012800.0.0/OV.rnaseqv2__illuminahiseq_rnaseqv2__unc_edu__Level_3__RSEM_genes_normalized__data.data.txt",header = TRUE,sep = "\t",row.names = 1)
-save(brca_gdac, file = "./RNAseq/ov.RData")
+save(ov_gdac, file = "./data/RNAseq/ovRNAseq.RData")
+
+# save cancer files
+gdac_cancer_files <- list(brca = brca_gdac,
+                          coad = coad_gdac,
+                          lusc = lusc_gdac,
+                          ov = ov_gdac)
 
 ```
+
 
 
 ## Clinical data
 
 ```{r}
 # Clinical data for all cancers should be downloaded from TCGA public ftp: https://tcga-data.nci.nih.gov/tcgafiles/ftp_auth/distro_ftpusers/anonymous/tumor/XXXX/bcr/nationwidechildrens.org/bio/clin/. Replace "XXXX" with the desired cancer abbreviation and select the latest version of the clinical file ending with "patient_XXXX.txt". Please put all the clinical data files into a folder named "Clinical". 
+# update: get the clinical data from https://portal.gdc.cancer.gov/. Perhaps from GDAC firehose? YES, from firehose. Go here: http://gdac.broadinstitute.org/runs/stddata__2016_01_28/data/OV/20160128/
+
+# we will use files like OV.clin.merged.txt and rename them "patient_XXXX.txt"
+
+# done
+
 ```
 
 ## Purity information
 
 ```{r}
 # TIMER requires tumor purity information for acurate estimation of immune-related genes. Purity is available in the Related data files. After downloading the zip file, please unzip the purity estimation files into a folder named "AGP".
+
+# related files are http://cistrome.org/TIMER/download.html 
+
 ```
 
 
@@ -78,8 +99,139 @@ save(brca_gdac, file = "./RNAseq/ov.RData")
 ```{r}
 # TIMER also uses reference immune cell expression files to estimate the immune infiltration levels. These files are available in the Related data files 1-3. Please download these files and put them into a folder named "immune_datasets". 
 # Please also download the Supplementar Table S5 from Rooney et al., 2015, Cell and convert it to a text file (mmc5.txt) and place it into a folder named "virus". 
+
+# to convert the mmc5 file...
+
+read_excel_allsheets <- function(filename, tibble = FALSE) {
+  # from https://stackoverflow.com/questions/12945687/read-all-worksheets-in-an-excel-workbook-into-an-r-list-with-data-frames 
+    sheets <- excel_sheets(filename)
+    x <- lapply(sheets, function(X) readxl::read_excel(filename, sheet = X))
+    if(!tibble) x <- lapply(x, as.data.frame)
+    names(x) <- sheets
+    x
+}
+
+
+mmc5_rooney <- read_excel_allsheets(filename = "./data/virus/mmc5.xlsx")
+# we likely want the first sheet
+write.table(x = mmc5_rooney$S5A_CTantigenStats,file = "./virus/mmc5.txt")
+
+```
+
+## Data depository structure
+
+```{r}
+# 3. Data depository structure.
+# Please put all the folders in step 1 into one folder named "data". Download the R codes and put both .R files at the same level of folder 'data'. Create a new folder at this level, named 'results/'. Under results/, create 23 folders, each with the name of the cancer abbreviation in lowercase. The analysis results for each cancer will be written in the corresponding folder. Please download Related data file 5 and put on the same level as the R codes. Upon finishing this step, your current folder should have 2 folders (data and results), 1 Rdata file and 2 R codes.
+
+# Done
+```
+
+## RedBlue
+
+```{r}
+redblue <- read.table(file = "redblue100.txt",header = TRUE,sep = "\t",row.names = 1)
+save(redblue, file = "./redblue.Rdata")
+
 ```
 
 
+# Run TIMER
+
+```{r brca}
+# 4. Running TIMER.
+# If you are interested in one cancer, please open an R console, type:
+# cc='XXXX'	## replace XXXX with your desired cancer abbreviation
+# cur.dir='Path_to_your_current_directory'
+# source('CancerImmunePipeline.R')
+# 
+# 5. Running TIMER in batch mode
+# Open R console, type:
+# setwd("Path_to_your_current_directory")
+# source('SummarizeResults.R')
+
+print(getwd())
+setwd("/Users/vinayakvsv/big_pqe/analysis/timer")
+# let's do this one at a time
+cc='brca'
+print(cc)
+cur.dir = '/Users/vinayakvsv/big_pqe/analysis/timer/'
+source('CancerImmunePipeline.R')
+sink()
+# source('./SummarizeResults.R')
+
+```
+
+```{r ov}
+# 4. Running TIMER.
+# If you are interested in one cancer, please open an R console, type:
+# cc='XXXX'	## replace XXXX with your desired cancer abbreviation
+# cur.dir='Path_to_your_current_directory'
+# source('CancerImmunePipeline.R')
+# 
+# 5. Running TIMER in batch mode
+# Open R console, type:
+# setwd("Path_to_your_current_directory")
+# source('SummarizeResults.R')
+
+#print(getwd())
+setwd("/Users/vinayakvsv/big_pqe/analysis/timer")
+# let's do this one at a time
+cc='ov'
+print(cc)
+cur.dir = '/Users/vinayakvsv/big_pqe/analysis/timer/'
+source('CancerImmunePipeline.R')
+sink()
+# source('./SummarizeResults.R')
+
+```
+
+```{r lusc}
+# 4. Running TIMER.
+# If you are interested in one cancer, please open an R console, type:
+# cc='XXXX'	## replace XXXX with your desired cancer abbreviation
+# cur.dir='Path_to_your_current_directory'
+# source('CancerImmunePipeline.R')
+# 
+# 5. Running TIMER in batch mode
+# Open R console, type:
+# setwd("Path_to_your_current_directory")
+# source('SummarizeResults.R')
+
+#print(getwd())
+setwd("/Users/vinayakvsv/big_pqe/analysis/timer")
+# let's do this one at a time
+cc='lusc'
+print(cc)
+cur.dir = '/Users/vinayakvsv/big_pqe/analysis/timer/'
+source('CancerImmunePipeline.R')
+sink()
+# source('./SummarizeResults.R')
+
+```
+
+```{r colon}
+# 4. Running TIMER.
+# If you are interested in one cancer, please open an R console, type:
+# cc='XXXX'	## replace XXXX with your desired cancer abbreviation
+# cur.dir='Path_to_your_current_directory'
+# source('CancerImmunePipeline.R')
+# 
+# 5. Running TIMER in batch mode
+# Open R console, type:
+# setwd("Path_to_your_current_directory")
+# source('SummarizeResults.R')
+
+#print(getwd())
+setwd("/Users/vinayakvsv/big_pqe/analysis/timer")
+# let's do this one at a time
+cc='coad'
+print(cc)
+cur.dir = '/Users/vinayakvsv/big_pqe/analysis/timer/'
+source('CancerImmunePipeline.R')
+sink()
+# source('./SummarizeResults.R')
+
+```
 
 

@@ -1,0 +1,136 @@
+lusc  output
+
+Number of genes inversely correlated with purity is 3461
+
+Number of immune genes inversely correlated with purity is 722
+
+Test if immune genes are enriched for inverse correlation with purity: 
+
+
+	Fisher's Exact Test for Count Data
+
+data:  
+p-value < 2.2e-16
+alternative hypothesis: true odds ratio is not equal to 1
+95 percent confidence interval:
+ 2.625386 3.198406
+sample estimates:
+odds ratio 
+  2.898536 
+
+QC4: Correlation of Estimated Abundance with Marker Genes
+
+CD19
+
+       B_cell T_cell.CD4 T_cell.CD8  Neutrophil Macrophage          DC
+[1,] 0.293445  0.1644297 -0.1004378 -0.04867054  0.0562343 -0.07690334
+CD8B
+
+        B_cell T_cell.CD4  T_cell.CD8  Neutrophil Macrophage         DC
+[1,] 0.1648742 0.07733744 -0.06258949 -0.02643952 0.03564035 0.00280603
+CD163
+
+         B_cell  T_cell.CD4 T_cell.CD8 Neutrophil Macrophage         DC
+[1,] 0.08155805 -0.08217627 -0.1567565 0.02572472  0.4962718 0.07860549
+ITGAM
+
+        B_cell T_cell.CD4 T_cell.CD8   Neutrophil Macrophage         DC
+[1,] 0.1357677 -0.0395532 -0.1255048 -0.009315559  0.4448576 0.06219244
+AMPD2
+
+         B_cell T_cell.CD4 T_cell.CD8  Neutrophil Macrophage         DC
+[1,] 0.07899178 0.09210469 0.07315442 -0.06068278 -0.1138508 0.08823754
+
+
+----------primary tumor compared with adjacent tissue-------
+
+
+ B_cell 
+
+
+	Welch Two Sample t-test
+
+data:  Fmat[tmp.01A, i] and Fmat[tmp.11A, i]
+t = 2.8228, df = 82.471, p-value = 0.005965
+alternative hypothesis: true difference in means is not equal to 0
+95 percent confidence interval:
+ 0.02919164 0.16849625
+sample estimates:
+ mean of x  mean of y 
+0.12967718 0.03083323 
+
+
+ T_cell.CD4 
+
+
+	Welch Two Sample t-test
+
+data:  Fmat[tmp.01A, i] and Fmat[tmp.11A, i]
+t = 1.1759, df = 60.939, p-value = 0.2442
+alternative hypothesis: true difference in means is not equal to 0
+95 percent confidence interval:
+ -0.03229225  0.12449392
+sample estimates:
+ mean of x  mean of y 
+0.09938760 0.05328676 
+
+
+ T_cell.CD8 
+
+
+	Welch Two Sample t-test
+
+data:  Fmat[tmp.01A, i] and Fmat[tmp.11A, i]
+t = 9.2644, df = 495, p-value < 2.2e-16
+alternative hypothesis: true difference in means is not equal to 0
+95 percent confidence interval:
+ 0.1265962 0.1947456
+sample estimates:
+mean of x mean of y 
+0.1606709 0.0000000 
+
+
+ Neutrophil 
+
+
+	Welch Two Sample t-test
+
+data:  Fmat[tmp.01A, i] and Fmat[tmp.11A, i]
+t = -0.4114, df = 54.346, p-value = 0.6824
+alternative hypothesis: true difference in means is not equal to 0
+95 percent confidence interval:
+ -0.2401095  0.1583374
+sample estimates:
+mean of x mean of y 
+0.2507360 0.2916221 
+
+
+ Macrophage 
+
+
+	Welch Two Sample t-test
+
+data:  Fmat[tmp.01A, i] and Fmat[tmp.11A, i]
+t = -10.741, df = 53.175, p-value = 6.232e-15
+alternative hypothesis: true difference in means is not equal to 0
+95 percent confidence interval:
+ -1.3033128 -0.8931923
+sample estimates:
+mean of x mean of y 
+ 0.157296  1.255549 
+
+
+ DC 
+
+
+	Welch Two Sample t-test
+
+data:  Fmat[tmp.01A, i] and Fmat[tmp.11A, i]
+t = 7.7578, df = 495, p-value = 4.973e-14
+alternative hypothesis: true difference in means is not equal to 0
+95 percent confidence interval:
+ 0.1026312 0.1722476
+sample estimates:
+mean of x mean of y 
+0.1374394 0.0000000 
+
