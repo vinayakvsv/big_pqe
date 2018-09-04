@@ -543,14 +543,15 @@ tcga_gsva_enrich_by_clus <- lapply(seq_along(along.with = tcga_cluster_counts),
                                               show_colnames = FALSE,
                                               fontsize = 3.0,
                                               main=paste("IFN, cluster",names(tcga_cluster_counts)[x]))
-                                     # cytokine and chemokine-related signatures
-                                     cytochemo <- gsva_enrich(counts = X,
-                                                        geneset = cytochemokine_genesets)
-                                     pheatmap(mat = cytochemo,
-                                              annotation_col = gdac_selected_cancers_annot,
-                                              show_colnames = FALSE,
-                                              fontsize = 3.0,
-                                              main=paste("Cytokine/Chemokine, cluster",names(tcga_cluster_counts)[x]))
+                                     # # cytokine and chemokine-related signatures
+                                     # cytochemo <- gsva_enrich(counts = X,
+                                     #                    geneset = cytochemokine_genesets)
+                                     # pheatmap(mat = cytochemo,
+                                     #          annotation_col = gdac_selected_cancers_annot,
+                                     #          show_colnames = FALSE,
+                                     #          fontsize = 3.0,
+                                     #          main=paste("Cytokine/Chemokine, cluster",names(tcga_cluster_counts)[x]))
+                                     
                                      # inflammation signatures
                                      # inflamm <- gsva_enrich(counts = X,
                                      #                    geneset = inflammation_genesets)
@@ -568,13 +569,14 @@ tcga_gsva_enrich_by_clus <- lapply(seq_along(along.with = tcga_cluster_counts),
                                      #          fontsize = 3.0,
                                      #          main=paste("Antigen presentation, cluster",names(tcga_cluster_counts)[x]))
                                      # 
-                                     viral <- gsva_enrich(counts = X,
-                                                        geneset = virus_genesets)
-                                     pheatmap(mat = viral,
-                                              annotation_col = gdac_selected_cancers_annot,
-                                              show_colnames = FALSE,
-                                              fontsize = 3.0,
-                                              main=paste("Virus-related GOs, cluster",names(tcga_cluster_counts)[x]))
+                                     
+                                     # viral <- gsva_enrich(counts = X,
+                                     #                    geneset = virus_genesets)
+                                     # pheatmap(mat = viral,
+                                     #          annotation_col = gdac_selected_cancers_annot,
+                                     #          show_colnames = FALSE,
+                                     #          fontsize = 3.0,
+                                     #          main=paste("Virus-related GOs, cluster",names(tcga_cluster_counts)[x]))
                                      # list(ifn,
                                      #      cytochemo,
                                      #      inflamm,
@@ -603,5 +605,39 @@ tcga_gsva_enrich_by_clus <- lapply(seq_along(along.with = tcga_cluster_counts),
 
 Finally, we would like to know how our three paper-specific IFN-viral signatures and our four TCGA-IFN-viral clusters. We can determine how correlated are the estimates of every pair of signatures (21 different pairs) for a particular tumor type. We use a bootstrapping procedure. 
 
-Let $x_i = x_{i1} ... x_{in}$ and $x_j = x_{j1} ... x_{jm}$ represent the expression values of two signatures $i$ and $j$. We want to test how well-correlated would these signatures' mean and median values be for a tumor type. We draw $R$ bootstrap samples (say that $R = 1000$) for each tumor sample. In each bootstrap sample, we draw $K$ medians of randomly-sampled gene expression values from one signature 
+Let $x_i = x_{i1} ... x_{in}$ and $x_j = x_{j1} ... x_{jm}$ represent the expression values of two signatures $i$ and $j$. We want to test how well-correlated would these signatures' mean and median values be for a tumor type. We draw $R$ bootstrap samples (say that $R = 100$) for each tumor sample. In each bootstrap sample, we draw $K$ pairs of medians (say $K=30$) from $n$ randomly-sampled gene expression values from one signature and $m$ randomly-sampled gene expression values from the other signature. We obtain the correlation coefficient across these $K$ pairs, and ultimately we obtain $R$ correlation coefficients (for which we obtain the mean correlation and the values at the 2.5th and 97.5th percentiles). We repeat this bootstrapping procedure for each tumor sample. 
+
+The proposed elaborate bootstrapping procedure is intended to prevent batch-level effects within a particular tumor type, but we can modify it for a more simplified sampling procedure. Instead of performing $R \times K \times (n + m)$ samples for $N \approx 3000$ tumors (!), we will instead sample our $n$ and $m$ gene signature values across all tumor samples of a particular type so that we only have to repeat $R \times K \times (n + m)$ for 4 different tumor types (TCGA has 27 types in total, but we are just focused on 4 for now). We will have a faster procedure, but we will obtain estimates of signature correlations for a broad tumor type (and not for particular samples).
+
+```{r signature_bootstrapping_fn}
+
+signature_median <- function(sig1,sig2) {
+  # draw the random sample from signature 1
+  n_sig1 <- length(sig1)
+  n_sig2 <- length(sig2)
+  # boot_sig1 <- median(sample(sig1,n_sig1,replace=TRUE))
+  boot_sig1 <- median(apply(sig1,MARGIN=1,function(x) {sample(x,1,replace=TRUE)}))
+  boot_sig2 <- median(apply(sig2,MARGIN=1,function(x) {sample(x,1,replace=TRUE)}))
+  # boot_sig2 <- median(sample(sig2,n_sig2,replace=TRUE))
+  
+  boot_x <- c(boot_sig1,boot_sig2)
+  return(boot_x)
+}
+
+estimate_corr_median_signatures <- function(sig1_counts,sig2_counts,K=30) {
+  median_boot <- lapply(seq_len(K),function(x) {signature_median_bootstrapping(sig1,sig2)})
+  median_boot <- do.call(cbind,median_boot)
+  boot_corr <- corr(median_boot[,1],median_boot[,2])
+  return(boot_corr)
+}
+
+R <- 100
+bootstrap_corr_medians <- rep(estimate_corr_median_signatures(sig1_counts,sig2_counts),R)
+
+mean_corr <- mean(bootstrap_corr_medians)
+ci_corr <- quantile(mean_corr,c(0.025,0.975))
+
+
+```
+
 
