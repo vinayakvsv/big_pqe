@@ -662,12 +662,15 @@ signature_median <- function(sig1,sig2) {
                               sample(x,1,replace=TRUE)
                               }
                             ))
+  # randomly sample n_sig1 entries from boot_sig1
+  boot_sig1_random <- sample(boot_sig1,n_sig1,replace=TRUE)
   boot_sig2 <- median(apply(sig2,
                             MARGIN=1,
                             function(x) {
                               sample(x,1,replace=TRUE)
                               }
                             ))
+  boot_sig2_random <- sample(boot_sig2,n_sig2,replace=TRUE)
   # boot_sig2 <- median(sample(sig2,n_sig2,replace=TRUE))
   
   boot_x <- c(boot_sig1,boot_sig2)
