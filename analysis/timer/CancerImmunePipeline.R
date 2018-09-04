@@ -321,6 +321,9 @@ names(CYT)=cc
 ####----------------------------------------#####
 ## Below are analysis part: run in tandem with above codes.
 
+## Write Fmat to a file
+write.table(file=paste(cc,'Fmat.txt',sep="_"),x=Fmat,col.names = TRUE,row.names=TRUE,sep="\t")
+
 ## Quality Control: All should satisfy. If any is violated, the results cannot be trusted.
 #1. Check if distribution of reference dataset can be linearly unified with tumor expression
 pdf(paste(cur.dir,'/results/',cc,'/output.pdf',sep=''))

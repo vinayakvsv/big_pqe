@@ -603,7 +603,7 @@ tcga_gsva_enrich_by_clus <- lapply(seq_along(along.with = tcga_cluster_counts),
 ```
 
 Perform the GSVA enrichment for IFN-related signatures analysis
-```{}
+```{r}
 ifn_highest <- gsva_enrich(counts = highest_unified_counts,
                            geneset = interferon_genesets) 
 pheatmap(mat = ifn_highest,
@@ -612,21 +612,12 @@ pheatmap(mat = ifn_highest,
          fontsize = 3.0,
          main=paste("IFN, highest-expression cluster"))
 
-ifn_med1 <- gsva_enrich(counts = med2_unified_counts,
-                           geneset = interferon_genesets) # error is here
-pheatmap(mat = ifn_med1,
-         annotation_col = gdac_selected_cancers_annot,
-         show_colnames = FALSE,
-         fontsize = 3.0,
-         main=paste("IFN, medium-expression cluster #1"))
-
-ifn_med1 <- gsva_enrich(counts = med1_unified_counts,
-                           geneset = interferon_genesets)
-pheatmap(mat = ifn_med1,
-         annotation_col = gdac_selected_cancers_annot,
-         show_colnames = FALSE,
-         fontsize = 3.0,
-         main=paste("IFN, medium-expression cluster #2"))
+# ifn_med2 <- gsva_enrich(counts = med2_unified_counts,geneset = interferon_genesets) # error is here
+# pheatmap(mat = ifn_med2,
+#          annotation_col = gdac_selected_cancers_annot,
+#          show_colnames = FALSE,
+#          fontsize = 3.0,
+#          main=paste("IFN, medium-expression cluster #1"))
 
 ifn_lowest <- gsva_enrich(counts = lowest_unified_counts,
                            geneset = interferon_genesets)
@@ -640,6 +631,18 @@ pheatmap(mat = ifn_lowest,
 ```
 
 
+```{r}
+ifn_med1 <- gsva_enrich(counts = med1_unified_counts,
+                           geneset = interferon_genesets)
+pheatmap(mat = ifn_med1,
+         annotation_col = gdac_selected_cancers_annot,
+         show_colnames = FALSE,
+         fontsize = 3.0,
+         main=paste("IFN, medium-expression cluster #2"))
+
+```
+
+Consistently, a chunk of BRCA patients exhibit low and weak interferon responses for the high, low, and medium-expression unified signature clusters
 
 # How mutually informative are the signatures
 
@@ -703,6 +706,14 @@ bootstrap_corr_medians_ov <- sapply(X = seq_len(R),
 hist(bootstrap_corr_medians_ov)
 mean_corr_ov.chiappinelli_canadas <- mean(bootstrap_corr_medians_ov)
 ci_corr_ov.chiappinelli_canadas <- quantile(bootstrap_corr_medians_ov,c(0.025,0.975))
+# test the correlation of the two signatures for the two signatures
+ov_cor.chiappinelli_canadas <- lapply(seq_len(length.out = ncol(sig1_counts)),function(x) {c(median(sig1_counts[,x]),median(sig2_counts[,x]))})
+ov_cor.chiappinelli_canadas <- do.call(rbind,ov_cor.chiappinelli_canadas)
+plot(ov_cor.chiappinelli_canadas,pch=20,
+     xlab=c("median value of chiappinelli signature"),
+     ylab=c("median value of canadas signature"))
+cor_ov_cor.chiappinelli_canadas <- cor(ov_cor.chiappinelli_canadas)
+print(cor_ov_cor.chiappinelli_canadas > max(ci_corr_ov.chiappinelli_canadas) | cor_ov_cor.chiappinelli_canadas < max(ci_corr_ov.chiappinelli_canadas))
 
 # get BRCA samples
 gdac_selected_cancers_annot_brca <- subset(gdac_selected_cancers_annot,TCGA %in% c("BRCA"))
@@ -715,6 +726,14 @@ bootstrap_corr_medians_brca <- sapply(X = seq_len(R),
 hist(bootstrap_corr_medians_brca)
 mean_corr_brca.chiappinelli_canadas <- mean(bootstrap_corr_medians_brca)
 ci_corr_brca.chiappinelli_canadas <- quantile(bootstrap_corr_medians_brca,c(0.025,0.975))
+# test the correlation of the two signatures for the two signatures
+brca_cor.chiappinelli_canadas <- lapply(seq_len(length.out = ncol(sig1_counts)),function(x) {c(median(sig1_counts[,x]),median(sig2_counts[,x]))})
+brca_cor.chiappinelli_canadas <- do.call(rbind,brca_cor.chiappinelli_canadas)
+plot(brca_cor.chiappinelli_canadas,pch=20,
+     xlab=c("median value of chiappinelli signature"),
+     ylab=c("median value of canadas signature"))
+cor_brca_cor.chiappinelli_canadas <- cor(brca_cor.chiappinelli_canadas)
+print(cor_brca_cor.chiappinelli_canadas > max(ci_corr_brca.chiappinelli_canadas) | cor_brca_cor.chiappinelli_canadas < max(ci_corr_brca.chiappinelli_canadas))
 
 # get COAD samples
 gdac_selected_cancers_annot_coad <- subset(gdac_selected_cancers_annot,TCGA %in% c("COAD"))
@@ -727,6 +746,14 @@ bootstrap_corr_medians_coad <- sapply(X = seq_len(R),
 hist(bootstrap_corr_medians_coad)
 mean_corr_coad.chiappinelli_canadas <- mean(bootstrap_corr_medians_coad)
 ci_corr_coad.chiappinelli_canadas <- quantile(bootstrap_corr_medians_coad,c(0.025,0.975))
+# test the correlation of the two signatures for the two signatures
+coad_cor.chiappinelli_canadas <- lapply(seq_len(length.out = ncol(sig1_counts)),function(x) {c(median(sig1_counts[,x]),median(sig2_counts[,x]))})
+coad_cor.chiappinelli_canadas <- do.call(rbind,coad_cor.chiappinelli_canadas)
+plot(coad_cor.chiappinelli_canadas,pch=20,
+     xlab=c("median value of chiappinelli signature"),
+     ylab=c("median value of canadas signature"))
+cor_coad_cor.chiappinelli_canadas <- cor(coad_cor.chiappinelli_canadas)
+print(cor_coad_cor.chiappinelli_canadas > max(ci_corr_coad.chiappinelli_canadas) | cor_coad_cor.chiappinelli_canadas < max(ci_corr_coad.chiappinelli_canadas))
 
 # get LUSC samples
 gdac_selected_cancers_annot_lusc <- subset(gdac_selected_cancers_annot,TCGA %in% c("LUSC"))
@@ -739,62 +766,101 @@ bootstrap_corr_medians_lusc <- sapply(X = seq_len(R),
 hist(bootstrap_corr_medians_lusc)
 mean_corr_lusc.chiappinelli_canadas <- mean(bootstrap_corr_medians_lusc)
 ci_corr_lusc.chiappinelli_canadas <- quantile(bootstrap_corr_medians_lusc,c(0.025,0.975))
+# test the correlation of the two signatures for the two signatures
+lusc_cor.chiappinelli_canadas <- lapply(seq_len(length.out = ncol(sig1_counts)),function(x) {c(median(sig1_counts[,x]),median(sig2_counts[,x]))})
+lusc_cor.chiappinelli_canadas <- do.call(rbind,lusc_cor.chiappinelli_canadas)
+plot(lusc_cor.chiappinelli_canadas,pch=20,
+     xlab=c("median value of chiappinelli signature"),
+     ylab=c("median value of canadas signature"))
+cor_lusc_cor.chiappinelli_canadas <- cor(lusc_cor.chiappinelli_canadas)
+print(cor_lusc_cor.chiappinelli_canadas > max(ci_corr_lusc.chiappinelli_canadas) | cor_lusc_cor.chiappinelli_canadas < max(ci_corr_lusc.chiappinelli_canadas))
 
 ```
 
 
 ```{r}
 # chiappinelli vs sheng/lafleur
+
 # get OV samples
 gdac_selected_cancers_annot_ov <- subset(gdac_selected_cancers_annot,TCGA %in% c("OV"))
 sig1_counts <- gdac_selected_cancers.chiappinelli_tcga_mat[,colnames(gdac_selected_cancers.chiappinelli_tcga_mat) %in% rownames(gdac_selected_cancers_annot_ov)]
 sig2_counts <- gdac_selected_cancers.sheng_lafleur_tcga_mat[,colnames(gdac_selected_cancers.sheng_lafleur_tcga_mat) %in% rownames(gdac_selected_cancers_annot_ov)]
-bootstrap_corr_medians_ov.chiappinelli_sheng_lafleur <- sapply(X = seq_len(R),
+bootstrap_corr_medians_ov <- sapply(X = seq_len(R),
                                  function(x) {
                                    estimate_corr_median_signatures(sig1_counts,sig2_counts)
                                  })
 hist(bootstrap_corr_medians_ov.chiappinelli_sheng_lafleur)
-mean_corr_ov.chiappinelli_sheng_lafleur <- mean(bootstrap_corr_medians_ov.chiappinelli_sheng_lafleur)
-ci_corr_ov.chiappinelli_sheng_lafleur <- quantile(bootstrap_corr_medians_ov.chiappinelli_sheng_lafleur,c(0.025,0.975))
+mean_corr_ov.chiappinelli_sheng_lafleur <- mean(bootstrap_corr_medians_ov)
+ci_corr_ov.chiappinelli_sheng_lafleur <- quantile(bootstrap_corr_medians_ov,c(0.025,0.975))
+# test the correlation of the two signatures for the two signatures
+ov_cor.chiappinelli_sheng_lafleur <- lapply(seq_len(length.out = ncol(sig1_counts)),function(x) {c(median(sig1_counts[,x]),median(sig2_counts[,x]))})
+ov_cor.chiappinelli_sheng_lafleur <- do.call(rbind,ov_cor.chiappinelli_sheng_lafleur)
+plot(ov_cor.chiappinelli_sheng_lafleur,pch=20,
+     xlab=c("median value of chiappinelli signature"),
+     ylab=c("median value of sheng_lafleur signature"))
+cor_ov_cor.chiappinelli_sheng_lafleur <- cor(ov_cor.chiappinelli_sheng_lafleur)
+print(cor_ov_cor.chiappinelli_sheng_lafleur > max(ci_corr_ov.chiappinelli_sheng_lafleur) | cor_ov_cor.chiappinelli_sheng_lafleur < max(ci_corr_ov.chiappinelli_sheng_lafleur))
 
 # get BRCA samples
 gdac_selected_cancers_annot_brca <- subset(gdac_selected_cancers_annot,TCGA %in% c("BRCA"))
 sig1_counts <- gdac_selected_cancers.chiappinelli_tcga_mat[,colnames(gdac_selected_cancers.chiappinelli_tcga_mat) %in% rownames(gdac_selected_cancers_annot_brca)]
 sig2_counts <- gdac_selected_cancers.sheng_lafleur_tcga_mat[,colnames(gdac_selected_cancers.sheng_lafleur_tcga_mat) %in% rownames(gdac_selected_cancers_annot_brca)]
-bootstrap_corr_medians_brca.chiappinelli_sheng_lafleur <- sapply(X = seq_len(R),
+bootstrap_corr_medians_brca <- sapply(X = seq_len(R),
                                  function(x) {
                                    estimate_corr_median_signatures(sig1_counts,sig2_counts)
                                  })
 hist(bootstrap_corr_medians_brca.chiappinelli_sheng_lafleur)
-mean_corr_brca.chiappinelli_sheng_lafleur <- mean(bootstrap_corr_medians_brca.chiappinelli_sheng_lafleur)
-ci_corr_brca.chiappinelli_sheng_lafleur <- quantile(bootstrap_corr_medians_brca.chiappinelli_sheng_lafleur,c(0.025,0.975))
+mean_corr_brca.chiappinelli_sheng_lafleur <- mean(bootstrap_corr_medians_brca)
+ci_corr_brca.chiappinelli_sheng_lafleur <- quantile(bootstrap_corr_medians_brca,c(0.025,0.975))
+# test the correlation of the two signatures for the two signatures
+brca_cor.chiappinelli_sheng_lafleur <- lapply(seq_len(length.out = ncol(sig1_counts)),function(x) {c(median(sig1_counts[,x]),median(sig2_counts[,x]))})
+brca_cor.chiappinelli_sheng_lafleur <- do.call(rbind,brca_cor.chiappinelli_sheng_lafleur)
+plot(brca_cor.chiappinelli_sheng_lafleur,pch=20,
+     xlab=c("median value of chiappinelli signature"),
+     ylab=c("median value of sheng_lafleur signature"))
+cor_brca_cor.chiappinelli_sheng_lafleur <- cor(brca_cor.chiappinelli_sheng_lafleur)
+print(cor_brca_cor.chiappinelli_sheng_lafleur > max(ci_corr_brca.chiappinelli_sheng_lafleur) | cor_brca_cor.chiappinelli_sheng_lafleur < max(ci_corr_brca.chiappinelli_sheng_lafleur))
 
 # get COAD samples
-gdac_selected_cancers_annot_coad. <- subset(gdac_selected_cancers_annot,TCGA %in% c("COAD"))
+gdac_selected_cancers_annot_coad <- subset(gdac_selected_cancers_annot,TCGA %in% c("COAD"))
 sig1_counts <- gdac_selected_cancers.chiappinelli_tcga_mat[,colnames(gdac_selected_cancers.chiappinelli_tcga_mat) %in% rownames(gdac_selected_cancers_annot_coad)]
 sig2_counts <- gdac_selected_cancers.sheng_lafleur_tcga_mat[,colnames(gdac_selected_cancers.sheng_lafleur_tcga_mat) %in% rownames(gdac_selected_cancers_annot_coad)]
-bootstrap_corr_medians_coad.chiappinelli_sheng_lafleur <- sapply(X = seq_len(R),
+bootstrap_corr_medians_coad <- sapply(X = seq_len(R),
                                  function(x) {
                                    estimate_corr_median_signatures(sig1_counts,sig2_counts)
                                  })
-mean_corr_coad.chiappinelli_sheng_lafleur <- mean(bootstrap_corr_medians_coad.chiappinelli_sheng_lafleur)
-ci_corr_coad.chiappinelli_sheng_lafleur <- quantile(bootstrap_corr_medians_coad.chiappinelli_sheng_lafleur,c(0.025,0.975))
+hist(bootstrap_corr_medians_coad.chiappinelli_sheng_lafleur)
+mean_corr_coad.chiappinelli_sheng_lafleur <- mean(bootstrap_corr_medians_coad)
+ci_corr_coad.chiappinelli_sheng_lafleur <- quantile(bootstrap_corr_medians_coad,c(0.025,0.975))
+# test the correlation of the two signatures for the two signatures
+coad_cor.chiappinelli_sheng_lafleur <- lapply(seq_len(length.out = ncol(sig1_counts)),function(x) {c(median(sig1_counts[,x]),median(sig2_counts[,x]))})
+coad_cor.chiappinelli_sheng_lafleur <- do.call(rbind,coad_cor.chiappinelli_sheng_lafleur)
+plot(coad_cor.chiappinelli_sheng_lafleur,pch=20,
+     xlab=c("median value of chiappinelli signature"),
+     ylab=c("median value of sheng_lafleur signature"))
+cor_coad_cor.chiappinelli_sheng_lafleur <- cor(coad_cor.chiappinelli_sheng_lafleur)
+print(cor_coad_cor.chiappinelli_sheng_lafleur > max(ci_corr_coad.chiappinelli_sheng_lafleur) | cor_coad_cor.chiappinelli_sheng_lafleur < max(ci_corr_coad.chiappinelli_sheng_lafleur))
 
 # get LUSC samples
 gdac_selected_cancers_annot_lusc <- subset(gdac_selected_cancers_annot,TCGA %in% c("LUSC"))
 sig1_counts <- gdac_selected_cancers.chiappinelli_tcga_mat[,colnames(gdac_selected_cancers.chiappinelli_tcga_mat) %in% rownames(gdac_selected_cancers_annot_lusc)]
 sig2_counts <- gdac_selected_cancers.sheng_lafleur_tcga_mat[,colnames(gdac_selected_cancers.sheng_lafleur_tcga_mat) %in% rownames(gdac_selected_cancers_annot_lusc)]
-bootstrap_corr_medians_lusc.chiappinelli_sheng_lafleur <- sapply(X = seq_len(R),
+bootstrap_corr_medians_lusc <- sapply(X = seq_len(R),
                                  function(x) {
                                    estimate_corr_median_signatures(sig1_counts,sig2_counts)
                                  })
-mean_corr_lusc.chiappinelli_sheng_lafleur <- mean(bootstrap_corr_medians_lusc.chiappinelli_sheng_lafleur)
-ci_corr_lusc.chiappinelli_sheng_lafleur <- quantile(bootstrap_corr_medians_lusc.chiappinelli_sheng_lafleur,c(0.025,0.975))
-
-hist(bootstrap_corr_medians_ov.chiappinelli_sheng_lafleur)
-hist(bootstrap_corr_medians_brca.chiappinelli_sheng_lafleur)
-hist(bootstrap_corr_medians_coad.chiappinelli_sheng_lafleur)
 hist(bootstrap_corr_medians_lusc.chiappinelli_sheng_lafleur)
+mean_corr_lusc.chiappinelli_sheng_lafleur <- mean(bootstrap_corr_medians_lusc)
+ci_corr_lusc.chiappinelli_sheng_lafleur <- quantile(bootstrap_corr_medians_lusc,c(0.025,0.975))
+# test the correlation of the two signatures for the two signatures
+lusc_cor.chiappinelli_sheng_lafleur <- lapply(seq_len(length.out = ncol(sig1_counts)),function(x) {c(median(sig1_counts[,x]),median(sig2_counts[,x]))})
+lusc_cor.chiappinelli_sheng_lafleur <- do.call(rbind,lusc_cor.chiappinelli_sheng_lafleur)
+plot(lusc_cor.chiappinelli_sheng_lafleur,pch=20,
+     xlab=c("median value of chiappinelli signature"),
+     ylab=c("median value of sheng_lafleur signature"))
+cor_lusc_cor.chiappinelli_sheng_lafleur <- cor(lusc_cor.chiappinelli_sheng_lafleur)
+print(cor_lusc_cor.chiappinelli_sheng_lafleur > max(ci_corr_lusc.chiappinelli_sheng_lafleur) | cor_lusc_cor.chiappinelli_sheng_lafleur < max(ci_corr_lusc.chiappinelli_sheng_lafleur))
+
 
 ```
 
@@ -804,58 +870,84 @@ hist(bootstrap_corr_medians_lusc.chiappinelli_sheng_lafleur)
 gdac_selected_cancers_annot_ov <- subset(gdac_selected_cancers_annot,TCGA %in% c("OV"))
 sig1_counts <- gdac_selected_cancers.canadas_tcga_mat[,colnames(gdac_selected_cancers.canadas_tcga_mat) %in% rownames(gdac_selected_cancers_annot_ov)]
 sig2_counts <- gdac_selected_cancers.sheng_lafleur_tcga_mat[,colnames(gdac_selected_cancers.sheng_lafleur_tcga_mat) %in% rownames(gdac_selected_cancers_annot_ov)]
-bootstrap_corr_medians_ov.canadas_sheng_lafleur <- sapply(X = seq_len(R),
+bootstrap_corr_medians_ov <- sapply(X = seq_len(R),
                                  function(x) {
                                    estimate_corr_median_signatures(sig1_counts,sig2_counts)
                                  })
-mean_corr_ov.canadas_sheng_lafleur <- mean(bootstrap_corr_medians_ov.canadas_sheng_lafleur)
-ci_corr_ov.canadas_sheng_lafleur <- quantile(bootstrap_corr_medians_ov.canadas_sheng_lafleur,c(0.025,0.975))
+hist(bootstrap_corr_medians_ov.canadas_sheng_lafleur)
+mean_corr_ov.canadas_sheng_lafleur <- mean(bootstrap_corr_medians_ov)
+ci_corr_ov.canadas_sheng_lafleur <- quantile(bootstrap_corr_medians_ov,c(0.025,0.975))
+# test the correlation of the two signatures for the two signatures
+ov_cor.canadas_sheng_lafleur <- lapply(seq_len(length.out = ncol(sig1_counts)),function(x) {c(median(sig1_counts[,x]),median(sig2_counts[,x]))})
+ov_cor.canadas_sheng_lafleur <- do.call(rbind,ov_cor.canadas_sheng_lafleur)
+plot(ov_cor.canadas_sheng_lafleur,pch=20,
+     xlab=c("median value of canadas signature"),
+     ylab=c("median value of sheng_lafleur signature"))
+cor_ov_cor.canadas_sheng_lafleur <- cor(ov_cor.canadas_sheng_lafleur)
+print(cor_ov_cor.canadas_sheng_lafleur > max(ci_corr_ov.canadas_sheng_lafleur) | cor_ov_cor.canadas_sheng_lafleur < max(ci_corr_ov.canadas_sheng_lafleur))
 
 # get BRCA samples
 gdac_selected_cancers_annot_brca <- subset(gdac_selected_cancers_annot,TCGA %in% c("BRCA"))
 sig1_counts <- gdac_selected_cancers.canadas_tcga_mat[,colnames(gdac_selected_cancers.canadas_tcga_mat) %in% rownames(gdac_selected_cancers_annot_brca)]
 sig2_counts <- gdac_selected_cancers.sheng_lafleur_tcga_mat[,colnames(gdac_selected_cancers.sheng_lafleur_tcga_mat) %in% rownames(gdac_selected_cancers_annot_brca)]
-bootstrap_corr_medians_brca.canadas_sheng_lafleur <- sapply(X = seq_len(R),
+bootstrap_corr_medians_brca <- sapply(X = seq_len(R),
                                  function(x) {
                                    estimate_corr_median_signatures(sig1_counts,sig2_counts)
                                  })
-mean_corr_brca.canadas_sheng_lafleur <- mean(bootstrap_corr_medians_brca.canadas_sheng_lafleur)
-ci_corr_brca.canadas_sheng_lafleur <- quantile(bootstrap_corr_medians_brca.canadas_sheng_lafleur,c(0.025,0.975))
+hist(bootstrap_corr_medians_brca.canadas_sheng_lafleur)
+mean_corr_brca.canadas_sheng_lafleur <- mean(bootstrap_corr_medians_brca)
+ci_corr_brca.canadas_sheng_lafleur <- quantile(bootstrap_corr_medians_brca,c(0.025,0.975))
+# test the correlation of the two signatures for the two signatures
+brca_cor.canadas_sheng_lafleur <- lapply(seq_len(length.out = ncol(sig1_counts)),function(x) {c(median(sig1_counts[,x]),median(sig2_counts[,x]))})
+brca_cor.canadas_sheng_lafleur <- do.call(rbind,brca_cor.canadas_sheng_lafleur)
+plot(brca_cor.canadas_sheng_lafleur,pch=20,
+     xlab=c("median value of canadas signature"),
+     ylab=c("median value of sheng_lafleur signature"))
+cor_brca_cor.canadas_sheng_lafleur <- cor(brca_cor.canadas_sheng_lafleur)
+print(cor_brca_cor.canadas_sheng_lafleur > max(ci_corr_brca.canadas_sheng_lafleur) | cor_brca_cor.canadas_sheng_lafleur < max(ci_corr_brca.canadas_sheng_lafleur))
 
 # get COAD samples
-gdac_selected_cancers_annot_coad. <- subset(gdac_selected_cancers_annot,TCGA %in% c("COAD"))
+gdac_selected_cancers_annot_coad <- subset(gdac_selected_cancers_annot,TCGA %in% c("COAD"))
 sig1_counts <- gdac_selected_cancers.canadas_tcga_mat[,colnames(gdac_selected_cancers.canadas_tcga_mat) %in% rownames(gdac_selected_cancers_annot_coad)]
 sig2_counts <- gdac_selected_cancers.sheng_lafleur_tcga_mat[,colnames(gdac_selected_cancers.sheng_lafleur_tcga_mat) %in% rownames(gdac_selected_cancers_annot_coad)]
-bootstrap_corr_medians_coad.canadas_sheng_lafleur <- sapply(X = seq_len(R),
+bootstrap_corr_medians_coad <- sapply(X = seq_len(R),
                                  function(x) {
                                    estimate_corr_median_signatures(sig1_counts,sig2_counts)
                                  })
-mean_corr_coad.canadas_sheng_lafleur <- mean(bootstrap_corr_medians_coad.canadas_sheng_lafleur)
-ci_corr_coad.canadas_sheng_lafleur <- quantile(bootstrap_corr_medians_coad.canadas_sheng_lafleur,c(0.025,0.975))
+hist(bootstrap_corr_medians_coad.canadas_sheng_lafleur)
+mean_corr_coad.canadas_sheng_lafleur <- mean(bootstrap_corr_medians_coad)
+ci_corr_coad.canadas_sheng_lafleur <- quantile(bootstrap_corr_medians_coad,c(0.025,0.975))
+# test the correlation of the two signatures for the two signatures
+coad_cor.canadas_sheng_lafleur <- lapply(seq_len(length.out = ncol(sig1_counts)),function(x) {c(median(sig1_counts[,x]),median(sig2_counts[,x]))})
+coad_cor.canadas_sheng_lafleur <- do.call(rbind,coad_cor.canadas_sheng_lafleur)
+plot(coad_cor.canadas_sheng_lafleur,pch=20,
+     xlab=c("median value of canadas signature"),
+     ylab=c("median value of sheng_lafleur signature"))
+cor_coad_cor.canadas_sheng_lafleur <- cor(coad_cor.canadas_sheng_lafleur)
+print(cor_coad_cor.canadas_sheng_lafleur > max(ci_corr_coad.canadas_sheng_lafleur) | cor_coad_cor.canadas_sheng_lafleur < max(ci_corr_coad.canadas_sheng_lafleur))
 
 # get LUSC samples
 gdac_selected_cancers_annot_lusc <- subset(gdac_selected_cancers_annot,TCGA %in% c("LUSC"))
 sig1_counts <- gdac_selected_cancers.canadas_tcga_mat[,colnames(gdac_selected_cancers.canadas_tcga_mat) %in% rownames(gdac_selected_cancers_annot_lusc)]
 sig2_counts <- gdac_selected_cancers.sheng_lafleur_tcga_mat[,colnames(gdac_selected_cancers.sheng_lafleur_tcga_mat) %in% rownames(gdac_selected_cancers_annot_lusc)]
-bootstrap_corr_medians_lusc.canadas_sheng_lafleur <- sapply(X = seq_len(R),
+bootstrap_corr_medians_lusc <- sapply(X = seq_len(R),
                                  function(x) {
                                    estimate_corr_median_signatures(sig1_counts,sig2_counts)
                                  })
-mean_corr_lusc.canadas_sheng_lafleur <- mean(bootstrap_corr_medians_lusc.canadas_sheng_lafleur)
-ci_corr_lusc.canadas_sheng_lafleur <- quantile(bootstrap_corr_medians_lusc.canadas_sheng_lafleur,c(0.025,0.975))
-
-
-# plots
-hist(bootstrap_corr_medians_ov.canadas_sheng_lafleur)
-hist(bootstrap_corr_medians_brca.canadas_sheng_lafleur)
-hist(bootstrap_corr_medians_coad.canadas_sheng_lafleur)
 hist(bootstrap_corr_medians_lusc.canadas_sheng_lafleur)
-
-# use the CI's as interval estimates for the actual signature correlations. 
+mean_corr_lusc.canadas_sheng_lafleur <- mean(bootstrap_corr_medians_lusc)
+ci_corr_lusc.canadas_sheng_lafleur <- quantile(bootstrap_corr_medians_lusc,c(0.025,0.975))
+# test the correlation of the two signatures for the two signatures
+lusc_cor.canadas_sheng_lafleur <- lapply(seq_len(length.out = ncol(sig1_counts)),function(x) {c(median(sig1_counts[,x]),median(sig2_counts[,x]))})
+lusc_cor.canadas_sheng_lafleur <- do.call(rbind,lusc_cor.canadas_sheng_lafleur)
+plot(lusc_cor.canadas_sheng_lafleur,pch=20,
+     xlab=c("median value of canadas signature"),
+     ylab=c("median value of sheng_lafleur signature"))
+cor_lusc_cor.canadas_sheng_lafleur <- cor(lusc_cor.canadas_sheng_lafleur)
+print(cor_lusc_cor.canadas_sheng_lafleur > max(ci_corr_lusc.canadas_sheng_lafleur) | cor_lusc_cor.canadas_sheng_lafleur < max(ci_corr_lusc.canadas_sheng_lafleur))
 ```
 
 
-The Chiappinelli and Canadas signatures are not particularly well-correlated with each other (mean correlation is between 0.1 and -0.1 for the tumor types studied). However, what if we limited the chiappinelli signature to genes that go up with AZA treatment (AIM genes include the up- and down-regulated genes, but the genes that increase in expression with AZA-treatment may be informative).
 
 ## For the four clusters from TCGA-wide analysis
 
@@ -922,10 +1014,30 @@ hist(bootstrap_corr_medians_lusc.highest_vs_lowest)
 
 ```
 
-## Conclusions
+# Correlation with outputs from TIMER
 
-1. The three signatures from the paper all seem to include different components of tumor innate immunity and the antiviral response. However, the signatures are very inconsistent with each other
-  a. Why would ERV activation lead to such different signatures?
+Finally, we would like to correlated the estimated enrichments of immune subsets (based on TIMER analysis) with expression of immune subsets.
+
+```{r import_timer_Fmat}
+
+# load FMATs
+brca_fmat <- read.table()
+ov_fmat <- read.table()
+lusc_fmat <- read.table()
+coad_fmat <- read.table()
+
+# get median expression of the signature in each entry
+
+
+
+```
+
+
+
+# Conclusions
+
+1. The three signatures from the paper all seem to include different components of tumor innate immunity and the antiviral response. However, the median expression values of the signatures are reasonably well-correlated with each other.
+  a. Why would ERV activation lead to such different signatures? Different experimental and biological conditions mean that different transcriptional "programs" are activated 
   b. What happens if we consider only up-regulated components of each signature?
 2. When we pool the signatures, we find four groups that stand out which could constitute a "unified" signature: a highly-expressed subset consisting of housekeeping genes and components of antigen presentation, a more sparsely-expressed subset in tumors, and two more "medium-expressed" subset of genes. One of the two "medium-subsets" is enriched for components of the interferon response pathway.
 3. 

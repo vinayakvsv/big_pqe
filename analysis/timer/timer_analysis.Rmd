@@ -140,6 +140,7 @@ save(redblue, file = "./redblue.Rdata")
 
 
 NOTE: I NEED TO ADD AN OPTION TO SAVE THE INFERRED INFILTRATE VALUES TO A TABLE (AND THE PANEL EXPRESSION) FOR EACH TUMOR SAMPLE. 
+Saved Fmat. That should do the trick.
 
 ```{r brca}
 # 4. Running TIMER.
