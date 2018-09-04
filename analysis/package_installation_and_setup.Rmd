@@ -1,0 +1,50 @@
+---
+title: "Setup notebook"
+output: html_notebook
+---
+
+This notebook installs all that is needed to run the BIG PQE files
+
+```{r}
+
+# Load bioconductor installation script
+source("https://bioconductor.org/biocLite.R")
+
+# for chiappinelli immune signature analysis
+biocLite("Biobase")
+biocLite("GEOquery")
+biocLite("limma")
+
+# canadas uses chiappinelli's stuff and more
+library(readxl)
+
+# edgeR for sheng and lafleur reanalysis
+biocLite("edgeR")
+
+# for GSVA
+source("../pipelines/gsva_script.R")
+
+# TIMER analysis requires a number of R packages, including: ggplot2, ppcor, reshape2, survival, qvalue and CHAT. Make sure you have installed these packages before running the R codes.
+library(ggplot2)
+library(reshape2)
+library(survival)
+install.packages("ppcor")
+library(ppcor)
+# dependencies for CHAT
+# biocLite("DNAcopy")
+# install.packages("DPpackage")
+library(DNAcopy)
+library(DPpackage)
+# CHAT was removed from the CRAN network, so an archived .tar.gz file from https://cran.r-project.org/src/contrib/Archive/CHAT/ (v1.1) was installed instead. 
+# Go to the folder to which you downloaded CHAT and type in "R CMD INSTALL CHAT_1.1.tar.gz"
+library(CHAT)
+# source("https://bioconductor.org/biocLite.R")
+# biocLite("qvalue")
+library(qvalue)
+# reading xlsx files
+# library(readxl)
+# install.packages("sva")
+library(sva)
+library(pheatmap)
+
+```
