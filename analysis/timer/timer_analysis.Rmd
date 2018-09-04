@@ -120,7 +120,7 @@ write.table(x = mmc5_rooney$S5A_CTantigenStats,file = "./data/virus/mmc5.txt")
 
 ## Data depository structure
 
-```{r}
+```{}
 # 3. Data depository structure.
 # Please put all the folders in step 1 into one folder named "data". Download the R codes and put both .R files at the same level of folder 'data'. Create a new folder at this level, named 'results/'. Under results/, create 23 folders, each with the name of the cancer abbreviation in lowercase. The analysis results for each cancer will be written in the corresponding folder. Please download Related data file 5 and put on the same level as the R codes. Upon finishing this step, your current folder should have 2 folders (data and results), 1 Rdata file and 2 R codes.
 
@@ -141,6 +141,8 @@ save(redblue, file = "./redblue.Rdata")
 
 NOTE: I NEED TO ADD AN OPTION TO SAVE THE INFERRED INFILTRATE VALUES TO A TABLE (AND THE PANEL EXPRESSION) FOR EACH TUMOR SAMPLE. 
 Saved Fmat. That should do the trick.
+
+## BRCA
 
 ```{r brca}
 # 4. Running TIMER.
@@ -166,6 +168,8 @@ sink()
 
 ```
 
+## OV
+
 ```{r ov}
 # 4. Running TIMER.
 # If you are interested in one cancer, please open an R console, type:
@@ -189,6 +193,8 @@ sink()
 # source('./SummarizeResults.R')
 
 ```
+
+## LUSC
 
 ```{r lusc}
 # 4. Running TIMER.
@@ -214,6 +220,8 @@ sink()
 
 ```
 
+## Colon
+
 ```{r colon}
 # 4. Running TIMER.
 # If you are interested in one cancer, please open an R console, type:
@@ -238,5 +246,3 @@ sink()
 
 ```
 
-
-# Correlation between TIMER and the three different papers' signatures

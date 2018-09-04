@@ -1016,23 +1016,637 @@ hist(bootstrap_corr_medians_lusc.highest_vs_lowest)
 
 # Correlation with outputs from TIMER
 
-Finally, we would like to correlated the estimated enrichments of immune subsets (based on TIMER analysis) with expression of immune subsets.
+Finally, we would like to correlated the estimated enrichments of immune subsets (based on TIMER analysis) with the three paper's signatures
 
 ```{r import_timer_Fmat}
 
 # load FMATs
-brca_fmat <- read.table()
-ov_fmat <- read.table()
-lusc_fmat <- read.table()
-coad_fmat <- read.table()
+brca_fmat <- read.table(file = "timer/results/brca/brca_Fmat.txt",header = TRUE,sep = "\t",row.names = 1)
+ov_fmat <- read.table(file = "timer/results/ov/ov_Fmat.txt",header = TRUE,sep = "\t",row.names = 1)
+lusc_fmat <- read.table(file = "timer/results/lusc/lusc_Fmat.txt",header = TRUE,sep = "\t",row.names = 1)
+coad_fmat <- read.table(file = "timer/results/coad/coad_Fmat.txt",header = TRUE,sep = "\t",row.names = 1)
 
 # get median expression of the signature in each entry
+get_median_signature <- function(counts) {
+  x_median <- apply(X = counts,
+                    MARGIN = 2,FUN = median)
+  return(x_median)
+}
+
+# match Fmat rownames with tcga column names
+
+match_fmat_tcga_names <- function(fmat_names,tcga_names) {
+  # as.character
+  fmat_names <- as.character(unlist(fmat_names))
+  tcga_names <- as.character(unlist(tcga_names))
+  # fmat_names has dashes instead of dots
+  fmat_names_sub <- gsub(pattern = "-",replacement = ".",x = fmat_names,fixed = TRUE)
+  match_index <- sapply(X = fmat_names_sub,
+                        FUN = function(x) {
+                          x_ind <- grep(pattern = x,x = tcga_names,fixed = TRUE)
+                          x_ind
+                        })
+  # name the indices
+  names(match_index) <- fmat_names_sub
+  # return
+  return(match_index)
+}
+
+```
+
+Get medians of the signature across the cancers (use the log10 of the counts)
+```{r}
+chiappinelli_ifn_signature_median <- get_median_signature(counts = log10(gdac_selected_cancers.chiappinelli_tcga_mat))
+canadas_ifn_signature_median <- get_median_signature(counts = log10(gdac_selected_cancers.canadas_tcga_mat))
+canadas_3putr_ifn_signature_median <- get_median_signature(counts = log10(gdac_selected_cancers.canadas_tcga_mat_3putr)) # 3putr
+sheng_lafleur_ifn_signature_median <- get_median_signature(counts = log10(gdac_selected_cancers.sheng_lafleur_tcga_mat))
+```
+
+Go by cancer
+```{r}
+# BRCA
+temp_i <- match_fmat_tcga_names(fmat_names = rownames(brca_fmat),
+                                tcga_names = names(chiappinelli_ifn_signature_median))
+chiappinelli_brca_timer_signature <- chiappinelli_ifn_signature_median[temp_i]
+temp_i <- match_fmat_tcga_names(fmat_names = rownames(brca_fmat),
+                                tcga_names = names(canadas_ifn_signature_median))
+canadas_brca_timer_signature <- canadas_ifn_signature_median[temp_i]
+temp_i <- match_fmat_tcga_names(fmat_names = rownames(brca_fmat),
+                                tcga_names = names(canadas_3putr_ifn_signature_median))
+canadas_3putr_brca_timer_signature <- canadas_3putr_ifn_signature_median[temp_i]
+temp_i <- match_fmat_tcga_names(fmat_names = rownames(brca_fmat),
+                                tcga_names = names(sheng_lafleur_ifn_signature_median))
+sheng_lafleur_brca_timer_signature <- sheng_lafleur_ifn_signature_median[temp_i]
+
+# colors for fmat
+brca_fmat_colors <- rainbow(n = ncol(brca_fmat))
+ylim_all <- max(canadas_3putr_brca_timer_signature,
+                canadas_brca_timer_signature,
+                chiappinelli_brca_timer_signature,
+                sheng_lafleur_brca_timer_signature)
+
+# plot correlations
+plot(x = brca_fmat[,1],
+     y = chiappinelli_brca_timer_signature,
+     xlim=c(0,max(brca_fmat)),
+     ylim=c(0,ylim_all),
+     xlab=c("TIMER value"),
+     ylab=c("Median IFN-viral signature value (log10(counts))"),
+     type = "n",
+     main = paste0("Chiappinelli signature-TIMER correlation, BRCA"))
+chiappinelli_brca_timer_signature_cor <- lapply(X = seq_along(brca_fmat),
+      function(x) {
+        points(y = chiappinelli_brca_timer_signature,
+             x = brca_fmat[,x],
+             pch=20,
+             col = brca_fmat_colors[x])
+        timer_positive_subset_ind <- brca_fmat[,x] > 0
+        cor(x = chiappinelli_brca_timer_signature[timer_positive_subset_ind],
+            y = brca_fmat[timer_positive_subset_ind,x])
+      })
+names(chiappinelli_brca_timer_signature_cor) <- names(brca_fmat)
+legend(x = "bottomright",
+       legend = colnames(brca_fmat),
+       col = brca_fmat_colors,
+       pch=20,
+       cex = 0.75)
+
+# plot correlations
+plot(x = brca_fmat[,1],
+     y = canadas_brca_timer_signature,
+     xlim=c(0,max(brca_fmat)),
+     ylim=c(0,ylim_all),
+     xlab=c("TIMER value"),
+     ylab=c("Median IFN-viral signature value (log10(counts))"),
+     type = "n",
+     main = paste0("Canadas signature-TIMER correlation, BRCA"))
+canadas_brca_timer_signature_cor <- lapply(X = seq_along(brca_fmat),
+      function(x) {
+        points(y = canadas_brca_timer_signature,
+             x = brca_fmat[,x],
+             pch=20,
+             col = brca_fmat_colors[x])
+        timer_positive_subset_ind <- brca_fmat[,x] > 0
+        cor(x = canadas_brca_timer_signature[timer_positive_subset_ind],
+            y = brca_fmat[timer_positive_subset_ind,x])
+      })
+names(canadas_brca_timer_signature_cor) <- names(brca_fmat)
+legend(x = "bottomright",
+       legend = colnames(brca_fmat),
+       col = brca_fmat_colors,
+       pch=20,
+       cex = 0.75)
+
+# plot correlations for Canadas 3' UTR ERV-containing genes (sense and antisense)
+plot(x = brca_fmat[,1],
+     y = canadas_3putr_brca_timer_signature,
+     xlim=c(0,max(brca_fmat)),
+     ylim=c(0,ylim_all),
+     xlab=c("TIMER value"),
+     ylab=c("Median IFN-viral signature value (log10(counts))"),
+     type = "n",
+     main = paste0("Canadas (3' UTR ERV-containing genes) signature-TIMER correlation, BRCA"))
+canadas_3putr_brca_timer_signature_cor <- lapply(X = seq_along(brca_fmat),
+      function(x) {
+        points(y = canadas_3putr_brca_timer_signature,
+             x = brca_fmat[,x],
+             pch=20,
+             col = brca_fmat_colors[x])
+        timer_positive_subset_ind <- brca_fmat[,x] > 0
+        cor(x = canadas_3putr_brca_timer_signature[timer_positive_subset_ind],
+            y = brca_fmat[timer_positive_subset_ind,x])
+      })
+names(canadas_3putr_brca_timer_signature_cor) <- names(brca_fmat)
+legend(x = "bottomright",
+       legend = colnames(brca_fmat),
+       col = brca_fmat_colors,
+       pch=20,
+       cex = 0.75)
+
+# plot correlations
+plot(x = brca_fmat[,1],
+     y = sheng_lafleur_brca_timer_signature,
+     xlim=c(0,max(brca_fmat)),
+     ylim=c(0,ylim_all),
+     xlab=c("TIMER value"),
+     ylab=c("Median IFN-viral signature value (log10(counts))"),
+     type = "n",
+     main = paste0("Sheng and LaFleur signature-TIMER correlation, BRCA"))
+sheng_lafleur_brca_timer_signature_cor <- lapply(X = seq_along(brca_fmat),
+      function(x) {
+        points(y = sheng_lafleur_brca_timer_signature,
+             x = brca_fmat[,x],
+             pch=20,
+             col = brca_fmat_colors[x])
+        timer_positive_subset_ind <- brca_fmat[,x] > 0
+        cor(x = sheng_lafleur_brca_timer_signature[timer_positive_subset_ind],
+            y = brca_fmat[timer_positive_subset_ind,x])
+      })
+names(sheng_lafleur_brca_timer_signature_cor) <- names(brca_fmat)
+legend(x = "bottomright",
+       legend = colnames(brca_fmat),
+       col = brca_fmat_colors,
+       pch=20,
+       cex = 0.75)
+
+# mark the tumors with no CD8 infiltrates
+gdac_selected_cancers_annot_brca$CD8 <- brca_fmat$T_cell.CD8
+gdac_selected_cancers_annot_brca$CD4 <- brca_fmat$T_cell.CD4
+gdac_selected_cancers_annot_brca$B_cell <- brca_fmat$B_cell
+gdac_selected_cancers_annot_brca$Neutrophil <- brca_fmat$Neutrophil
+gdac_selected_cancers_annot_brca$Macrophage <- brca_fmat$Macrophage
+gdac_selected_cancers_annot_brca$DC <- brca_fmat$DC
 
 
 
 ```
 
+```{r}
+# OV
+temp_i <- match_fmat_tcga_names(fmat_names = rownames(ov_fmat),
+                                tcga_names = names(chiappinelli_ifn_signature_median))
+chiappinelli_ov_timer_signature <- chiappinelli_ifn_signature_median[temp_i]
+temp_i <- match_fmat_tcga_names(fmat_names = rownames(ov_fmat),
+                                tcga_names = names(canadas_ifn_signature_median))
+canadas_ov_timer_signature <- canadas_ifn_signature_median[temp_i]
+temp_i <- match_fmat_tcga_names(fmat_names = rownames(ov_fmat),
+                                tcga_names = names(canadas_3putr_ifn_signature_median))
+canadas_3putr_ov_timer_signature <- canadas_3putr_ifn_signature_median[temp_i]
+temp_i <- match_fmat_tcga_names(fmat_names = rownames(ov_fmat),
+                                tcga_names = names(sheng_lafleur_ifn_signature_median))
+sheng_lafleur_ov_timer_signature <- sheng_lafleur_ifn_signature_median[temp_i]
 
+# colors for fmat
+ov_fmat_colors <- rainbow(n = ncol(ov_fmat))
+
+# plot correlations
+plot(x = ov_fmat[,1],
+     y = chiappinelli_ov_timer_signature,
+     xlim=c(0,max(ov_fmat)),
+     ylim=c(0,ylim_all),
+     xlab=c("TIMER value"),
+     ylab=c("Median IFN-viral signature value (log10(counts))"),
+     type = "n",
+     main = paste0("Chiappinelli signature-TIMER correlation, ov"))
+chiappinelli_ov_timer_signature_cor <- lapply(X = seq_along(ov_fmat),
+      function(x) {
+        points(y = chiappinelli_ov_timer_signature,
+             x = ov_fmat[,x],
+             pch=20,
+             col = ov_fmat_colors[x])
+        timer_positive_subset_ind <- ov_fmat[,x] > 0
+        cor(x = chiappinelli_ov_timer_signature[timer_positive_subset_ind],
+            y = ov_fmat[timer_positive_subset_ind,x])
+      })
+names(chiappinelli_ov_timer_signature_cor) <- names(ov_fmat)
+legend(x = "bottomright",
+       legend = colnames(ov_fmat),
+       col = ov_fmat_colors,
+       pch=20,
+       cex = 0.75)
+
+# plot correlations
+plot(x = ov_fmat[,1],
+     y = canadas_ov_timer_signature,
+     xlim=c(0,max(ov_fmat)),
+     ylim=c(0,ylim_all),
+     xlab=c("TIMER value"),
+     ylab=c("Median IFN-viral signature value (log10(counts))"),
+     type = "n",
+     main = paste0("Canadas signature-TIMER correlation, ov"))
+canadas_ov_timer_signature_cor <- lapply(X = seq_along(ov_fmat),
+      function(x) {
+        points(y = canadas_ov_timer_signature,
+             x = ov_fmat[,x],
+             pch=20,
+             col = ov_fmat_colors[x])
+        timer_positive_subset_ind <- ov_fmat[,x] > 0
+        cor(x = canadas_ov_timer_signature[timer_positive_subset_ind],
+            y = ov_fmat[timer_positive_subset_ind,x])
+      })
+names(canadas_ov_timer_signature_cor) <- names(ov_fmat)
+legend(x = "bottomright",
+       legend = colnames(ov_fmat),
+       col = ov_fmat_colors,
+       pch=20,
+       cex = 0.75)
+
+# plot correlations for Canadas 3' UTR ERV-containing genes (sense and antisense)
+plot(x = ov_fmat[,1],
+     y = canadas_3putr_ov_timer_signature,
+     xlim=c(0,max(ov_fmat)),
+     ylim=c(0,ylim_all),
+     xlab=c("TIMER value"),
+     ylab=c("Median IFN-viral signature value (log10(counts))"),
+     type = "n",
+     main = paste0("Canadas (3' UTR ERV-containing genes) signature-TIMER correlation, ov"))
+canadas_3putr_ov_timer_signature_cor <- lapply(X = seq_along(ov_fmat),
+      function(x) {
+        points(y = canadas_3putr_ov_timer_signature,
+             x = ov_fmat[,x],
+             pch=20,
+             col = ov_fmat_colors[x])
+        timer_positive_subset_ind <- ov_fmat[,x] > 0
+        cor(x = canadas_3putr_ov_timer_signature[timer_positive_subset_ind],
+            y = ov_fmat[timer_positive_subset_ind,x])
+      })
+names(canadas_3putr_ov_timer_signature_cor) <- names(ov_fmat)
+legend(x = "bottomright",
+       legend = colnames(ov_fmat),
+       col = ov_fmat_colors,
+       pch=20,
+       cex = 0.75)
+
+# plot correlations
+plot(x = ov_fmat[,1],
+     y = sheng_lafleur_ov_timer_signature,
+     xlim=c(0,max(ov_fmat)),
+     ylim=c(0,ylim_all),
+     xlab=c("TIMER value"),
+     ylab=c("Median IFN-viral signature value (log10(counts))"),
+     type = "n",
+     main = paste0("Sheng and LaFleur signature-TIMER correlation, ov"))
+sheng_lafleur_ov_timer_signature_cor <- lapply(X = seq_along(ov_fmat),
+      function(x) {
+        points(y = sheng_lafleur_ov_timer_signature,
+             x = ov_fmat[,x],
+             pch=20,
+             col = ov_fmat_colors[x])
+        timer_positive_subset_ind <- ov_fmat[,x] > 0
+        cor(x = sheng_lafleur_ov_timer_signature[timer_positive_subset_ind],
+            y = ov_fmat[timer_positive_subset_ind,x])
+      })
+names(sheng_lafleur_ov_timer_signature_cor) <- names(ov_fmat)
+legend(x = "bottomright",
+       legend = colnames(ov_fmat),
+       col = ov_fmat_colors,
+       pch=20,
+       cex = 0.75)
+
+# mark the tumors with no CD8 infiltrates
+gdac_selected_cancers_annot_ov$CD8 <- ov_fmat$T_cell.CD8
+gdac_selected_cancers_annot_ov$CD4 <- ov_fmat$T_cell.CD4
+gdac_selected_cancers_annot_ov$B_cell <- ov_fmat$B_cell
+gdac_selected_cancers_annot_ov$Neutrophil <- ov_fmat$Neutrophil
+gdac_selected_cancers_annot_ov$Macrophage <- ov_fmat$Macrophage
+gdac_selected_cancers_annot_ov$DC <- ov_fmat$DC
+
+```
+
+```{r}
+
+# lusc
+temp_i <- match_fmat_tcga_names(fmat_names = rownames(lusc_fmat),
+                                tcga_names = names(chiappinelli_ifn_signature_median))
+chiappinelli_lusc_timer_signature <- chiappinelli_ifn_signature_median[temp_i]
+temp_i <- match_fmat_tcga_names(fmat_names = rownames(lusc_fmat),
+                                tcga_names = names(canadas_ifn_signature_median))
+canadas_lusc_timer_signature <- canadas_ifn_signature_median[temp_i]
+temp_i <- match_fmat_tcga_names(fmat_names = rownames(lusc_fmat),
+                                tcga_names = names(canadas_3putr_ifn_signature_median))
+canadas_3putr_lusc_timer_signature <- canadas_3putr_ifn_signature_median[temp_i]
+temp_i <- match_fmat_tcga_names(fmat_names = rownames(lusc_fmat),
+                                tcga_names = names(sheng_lafleur_ifn_signature_median))
+sheng_lafleur_lusc_timer_signature <- sheng_lafleur_ifn_signature_median[temp_i]
+
+# colors for fmat
+lusc_fmat_colors <- rainbow(n = ncol(lusc_fmat))
+
+# plot correlations
+plot(x = lusc_fmat[,1],
+     y = chiappinelli_lusc_timer_signature,
+     xlim=c(0,max(lusc_fmat)),
+     ylim=c(0,ylim_all),
+     xlab=c("TIMER value"),
+     ylab=c("Median IFN-viral signature value (log10(counts))"),
+     type = "n",
+     main = paste0("Chiappinelli signature-TIMER correlation, lusc"))
+chiappinelli_lusc_timer_signature_cor <- lapply(X = seq_along(lusc_fmat),
+      function(x) {
+        points(y = chiappinelli_lusc_timer_signature,
+             x = lusc_fmat[,x],
+             pch=20,
+             col = lusc_fmat_colors[x])
+        timer_positive_subset_ind <- lusc_fmat[,x] > 0
+        cor(x = chiappinelli_lusc_timer_signature[timer_positive_subset_ind],
+            y = lusc_fmat[timer_positive_subset_ind,x])
+      })
+names(chiappinelli_lusc_timer_signature_cor) <- names(lusc_fmat)
+legend(x = "bottomright",
+       legend = colnames(lusc_fmat),
+       col = lusc_fmat_colors,
+       pch=20,
+       cex = 0.75)
+
+# plot correlations
+plot(x = lusc_fmat[,1],
+     y = canadas_lusc_timer_signature,
+     xlim=c(0,max(lusc_fmat)),
+     ylim=c(0,ylim_all),
+     xlab=c("TIMER value"),
+     ylab=c("Median IFN-viral signature value (log10(counts))"),
+     type = "n",
+     main = paste0("Canadas signature-TIMER correlation, lusc"))
+canadas_lusc_timer_signature_cor <- lapply(X = seq_along(lusc_fmat),
+      function(x) {
+        points(y = canadas_lusc_timer_signature,
+             x = lusc_fmat[,x],
+             pch=20,
+             col = lusc_fmat_colors[x])
+        timer_positive_subset_ind <- lusc_fmat[,x] > 0
+        cor(x = canadas_lusc_timer_signature[timer_positive_subset_ind],
+            y = lusc_fmat[timer_positive_subset_ind,x])
+      })
+names(canadas_lusc_timer_signature_cor) <- names(lusc_fmat)
+legend(x = "bottomright",
+       legend = colnames(lusc_fmat),
+       col = lusc_fmat_colors,
+       pch=20,
+       cex = 0.75)
+
+# plot correlations for Canadas 3' UTR ERV-containing genes (sense and antisense)
+plot(x = lusc_fmat[,1],
+     y = canadas_3putr_lusc_timer_signature,
+     xlim=c(0,max(lusc_fmat)),
+     ylim=c(0,ylim_all),
+     xlab=c("TIMER value"),
+     ylab=c("Median IFN-viral signature value (log10(counts))"),
+     type = "n",
+     main = paste0("Canadas (3' UTR ERV-containing genes) signature-TIMER correlation, lusc"))
+canadas_3putr_lusc_timer_signature_cor <- lapply(X = seq_along(lusc_fmat),
+      function(x) {
+        points(y = canadas_3putr_lusc_timer_signature,
+             x = lusc_fmat[,x],
+             pch=20,
+             col = lusc_fmat_colors[x])
+        timer_positive_subset_ind <- lusc_fmat[,x] > 0
+        cor(x = canadas_3putr_lusc_timer_signature[timer_positive_subset_ind],
+            y = lusc_fmat[timer_positive_subset_ind,x])
+      })
+names(canadas_3putr_lusc_timer_signature_cor) <- names(lusc_fmat)
+legend(x = "bottomright",
+       legend = colnames(lusc_fmat),
+       col = lusc_fmat_colors,
+       pch=20,
+       cex = 0.75)
+
+# plot correlations
+plot(x = lusc_fmat[,1],
+     y = sheng_lafleur_lusc_timer_signature,
+     xlim=c(0,max(lusc_fmat)),
+     ylim=c(0,ylim_all),
+     xlab=c("TIMER value"),
+     ylab=c("Median IFN-viral signature value (log10(counts))"),
+     type = "n",
+     main = paste0("Sheng and LaFleur signature-TIMER correlation, lusc"))
+sheng_lafleur_lusc_timer_signature_cor <- lapply(X = seq_along(lusc_fmat),
+      function(x) {
+        points(y = sheng_lafleur_lusc_timer_signature,
+             x = lusc_fmat[,x],
+             pch=20,
+             col = lusc_fmat_colors[x])
+        timer_positive_subset_ind <- lusc_fmat[,x] > 0
+        cor(x = sheng_lafleur_lusc_timer_signature[timer_positive_subset_ind],
+            y = lusc_fmat[timer_positive_subset_ind,x])
+      })
+names(sheng_lafleur_lusc_timer_signature_cor) <- names(lusc_fmat)
+legend(x = "bottomright",
+       legend = colnames(lusc_fmat),
+       col = lusc_fmat_colors,
+       pch=20,
+       cex = 0.75)
+
+# mark the tumors with no CD8 infiltrates
+gdac_selected_cancers_annot_lusc$CD8 <- lusc_fmat$T_cell.CD8
+gdac_selected_cancers_annot_lusc$CD4 <- lusc_fmat$T_cell.CD4
+gdac_selected_cancers_annot_lusc$B_cell <- lusc_fmat$B_cell
+gdac_selected_cancers_annot_lusc$Neutrophil <- lusc_fmat$Neutrophil
+gdac_selected_cancers_annot_lusc$Macrophage <- lusc_fmat$Macrophage
+gdac_selected_cancers_annot_lusc$DC <- lusc_fmat$DC
+
+
+```
+
+```{r}
+
+# coad
+temp_i <- match_fmat_tcga_names(fmat_names = rownames(coad_fmat),
+                                tcga_names = names(chiappinelli_ifn_signature_median))
+chiappinelli_coad_timer_signature <- chiappinelli_ifn_signature_median[temp_i]
+temp_i <- match_fmat_tcga_names(fmat_names = rownames(coad_fmat),
+                                tcga_names = names(canadas_ifn_signature_median))
+canadas_coad_timer_signature <- canadas_ifn_signature_median[temp_i]
+temp_i <- match_fmat_tcga_names(fmat_names = rownames(coad_fmat),
+                                tcga_names = names(canadas_3putr_ifn_signature_median))
+canadas_3putr_coad_timer_signature <- canadas_3putr_ifn_signature_median[temp_i]
+temp_i <- match_fmat_tcga_names(fmat_names = rownames(coad_fmat),
+                                tcga_names = names(sheng_lafleur_ifn_signature_median))
+sheng_lafleur_coad_timer_signature <- sheng_lafleur_ifn_signature_median[temp_i]
+
+# colors for fmat
+coad_fmat_colors <- rainbow(n = ncol(coad_fmat))
+
+# plot correlations
+plot(x = coad_fmat[,1],
+     y = chiappinelli_coad_timer_signature,
+     xlim=c(0,max(coad_fmat)),
+     ylim=c(0,ylim_all),
+     xlab=c("TIMER value"),
+     ylab=c("Median IFN-viral signature value (log10(counts))"),
+     type = "n",
+     main = paste0("Chiappinelli signature-TIMER correlation, coad"))
+chiappinelli_coad_timer_signature_cor <- lapply(X = seq_along(coad_fmat),
+      function(x) {
+        points(y = chiappinelli_coad_timer_signature,
+             x = coad_fmat[,x],
+             pch=20,
+             col = coad_fmat_colors[x])
+        timer_positive_subset_ind <- coad_fmat[,x] > 0
+        cor(x = chiappinelli_coad_timer_signature[timer_positive_subset_ind],
+            y = coad_fmat[timer_positive_subset_ind,x])
+      })
+names(chiappinelli_coad_timer_signature_cor) <- names(coad_fmat)
+legend(x = "bottomright",
+       legend = colnames(coad_fmat),
+       col = coad_fmat_colors,
+       pch=20,
+       cex = 0.75)
+
+# plot correlations
+plot(x = coad_fmat[,1],
+     y = canadas_coad_timer_signature,
+     xlim=c(0,max(coad_fmat)),
+     ylim=c(0,ylim_all),
+     xlab=c("TIMER value"),
+     ylab=c("Median IFN-viral signature value (log10(counts))"),
+     type = "n",
+     main = paste0("Canadas signature-TIMER correlation, coad"))
+canadas_coad_timer_signature_cor <- lapply(X = seq_along(coad_fmat),
+      function(x) {
+        points(y = canadas_coad_timer_signature,
+             x = coad_fmat[,x],
+             pch=20,
+             col = coad_fmat_colors[x])
+        timer_positive_subset_ind <- coad_fmat[,x] > 0
+        cor(x = canadas_coad_timer_signature[timer_positive_subset_ind],
+            y = coad_fmat[timer_positive_subset_ind,x])
+      })
+names(canadas_coad_timer_signature_cor) <- names(coad_fmat)
+legend(x = "bottomright",
+       legend = colnames(coad_fmat),
+       col = coad_fmat_colors,
+       pch=20,
+       cex = 0.75)
+
+# plot correlations for Canadas 3' UTR ERV-containing genes (sense and antisense)
+plot(x = coad_fmat[,1],
+     y = canadas_3putr_coad_timer_signature,
+     xlim=c(0,max(coad_fmat)),
+     ylim=c(0,ylim_all),
+     xlab=c("TIMER value"),
+     ylab=c("Median IFN-viral signature value (log10(counts))"),
+     type = "n",
+     main = paste0("Canadas (3' UTR ERV-containing genes) signature-TIMER correlation, coad"))
+canadas_3putr_coad_timer_signature_cor <- lapply(X = seq_along(coad_fmat),
+      function(x) {
+        points(y = canadas_3putr_coad_timer_signature,
+             x = coad_fmat[,x],
+             pch=20,
+             col = coad_fmat_colors[x])
+        timer_positive_subset_ind <- coad_fmat[,x] > 0
+        cor(x = canadas_3putr_coad_timer_signature[timer_positive_subset_ind],
+            y = coad_fmat[timer_positive_subset_ind,x])
+      })
+names(canadas_3putr_coad_timer_signature_cor) <- names(coad_fmat)
+legend(x = "bottomright",
+       legend = colnames(coad_fmat),
+       col = coad_fmat_colors,
+       pch=20,
+       cex = 0.75)
+
+# plot correlations
+plot(x = coad_fmat[,1],
+     y = sheng_lafleur_coad_timer_signature,
+     xlim=c(0,max(coad_fmat)),
+     ylim=c(0,ylim_all),
+     xlab=c("TIMER value"),
+     ylab=c("Median IFN-viral signature value (log10(counts))"),
+     type = "n",
+     main = paste0("Sheng and LaFleur signature-TIMER correlation, coad"))
+sheng_lafleur_coad_timer_signature_cor <- lapply(X = seq_along(coad_fmat),
+      function(x) {
+        points(y = sheng_lafleur_coad_timer_signature,
+             x = coad_fmat[,x],
+             pch=20,
+             col = coad_fmat_colors[x])
+        timer_positive_subset_ind <- coad_fmat[,x] > 0
+        cor(x = sheng_lafleur_coad_timer_signature[timer_positive_subset_ind],
+            y = coad_fmat[timer_positive_subset_ind,x])
+      })
+names(sheng_lafleur_coad_timer_signature_cor) <- names(coad_fmat)
+legend(x = "bottomright",
+       legend = colnames(coad_fmat),
+       col = coad_fmat_colors,
+       pch=20,
+       cex = 0.75)
+
+# mark the tumors with no CD8 infiltrates
+gdac_selected_cancers_annot_coad$CD8 <- coad_fmat$T_cell.CD8
+gdac_selected_cancers_annot_coad$CD4 <- coad_fmat$T_cell.CD4
+gdac_selected_cancers_annot_coad$B_cell <- coad_fmat$B_cell
+gdac_selected_cancers_annot_coad$Neutrophil <- coad_fmat$Neutrophil
+gdac_selected_cancers_annot_coad$Macrophage <- coad_fmat$Macrophage
+gdac_selected_cancers_annot_coad$DC <- coad_fmat$DC
+
+
+```
+
+Heatmap of correlations
+```{r full_correlations}
+sheng_lafleur_cor_timer_ifnviral <- do.call(rbind,list(sheng_lafleur_brca_timer_signature_cor,
+                                                       sheng_lafleur_ov_timer_signature_cor,
+                                                       sheng_lafleur_lusc_timer_signature_cor,
+                                                       sheng_lafleur_coad_timer_signature_cor))
+canadas_3putr_lafleur_cor_timer_ifnviral <- do.call(rbind,list(canadas_3putr_brca_timer_signature_cor,
+                                                       canadas_3putr_ov_timer_signature_cor,
+                                                       canadas_3putr_lusc_timer_signature_cor,
+                                                       canadas_3putr_brca_timer_signature_cor))
+canadas_lafleur_cor_timer_ifnviral <- do.call(rbind,list(canadas_brca_timer_signature_cor,
+                                                       canadas_ov_timer_signature_cor,
+                                                       canadas_lusc_timer_signature_cor,
+                                                       canadas_brca_timer_signature_cor))
+chiappinelli_lafleur_cor_timer_ifnviral <- do.call(rbind,list(chiappinelli_brca_timer_signature_cor,
+                                                       chiappinelli_ov_timer_signature_cor,
+                                                       chiappinelli_lusc_timer_signature_cor,
+                                                       chiappinelli_coad_timer_signature_cor))
+sig_timer_cancer <- rbind(sheng_lafleur_cor_timer_ifnviral,
+                                       canadas_3putr_lafleur_cor_timer_ifnviral,
+                                       canadas_lafleur_cor_timer_ifnviral,
+                                       chiappinelli_lafleur_cor_timer_ifnviral)
+sig_timer_cancer_rowannot <- data.frame(signature = c(rep("sheng/lafleur",nrow(sheng_lafleur_cor_timer_ifnviral)),
+                                                      rep("canadas_3'UTR",nrow(canadas_3putr_lafleur_cor_timer_ifnviral)),
+                                                      rep("canadas",nrow(canadas_lafleur_cor_timer_ifnviral)),
+                                                      rep("chiappinelli",nrow(chiappinelli_lafleur_cor_timer_ifnviral)))
+                                        )
+sig_timer_cancer_rowannot$cancer <- c(rep(c("BRCA","OV","LUSC","COAD"),4))
+sig_timer_cancer_mat <- apply(sig_timer_cancer,2,as.numeric)
+
+rownames(sig_timer_cancer_mat) <- rownames(sig_timer_cancer_rowannot)
+
+pheatmap(mat = t(sig_timer_cancer_mat),
+         annotation_col = sig_timer_cancer_rowannot,
+         show_colnames = FALSE,
+         fontsize = 6.0,
+         main = c("Correlation between IFN-viral signatures\nand TIMER scores for immune subsets"))
+```
+
+```
+gdac_selected_cancers_annot_brca$CD8 <- brca_fmat$T_cell.CD8
+gdac_selected_cancers_annot_ov$CD8 <- ov_fmat$T_cell.CD8
+gdac_selected_cancers_annot_lusc$CD8 <- lusc_fmat$T_cell.CD8
+gdac_selected_cancers_annot_coad$CD8 <- coad_fmat$T_cell.CD8
+
+```
 
 # Conclusions
 
@@ -1040,4 +1654,4 @@ coad_fmat <- read.table()
   a. Why would ERV activation lead to such different signatures? Different experimental and biological conditions mean that different transcriptional "programs" are activated 
   b. What happens if we consider only up-regulated components of each signature?
 2. When we pool the signatures, we find four groups that stand out which could constitute a "unified" signature: a highly-expressed subset consisting of housekeeping genes and components of antigen presentation, a more sparsely-expressed subset in tumors, and two more "medium-expressed" subset of genes. One of the two "medium-subsets" is enriched for components of the interferon response pathway.
-3. 
+3. Correlations between IFN-viral signatures appear to differ more by cancer type, with weaker correlations in OV. Moreover, the Canadas signatures show the strongest median values
