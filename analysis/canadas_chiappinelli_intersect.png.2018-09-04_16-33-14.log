@@ -1,0 +1,19 @@
+INFO [2018-09-04 16:33:14] $x
+INFO [2018-09-04 16:33:14] list(chiappinelli = as.character(chiappinelli_ifn_signature_unique_genes), 
+INFO [2018-09-04 16:33:14]     canadas = canadas_ifn_signature_unique_genes, sheng_lafleur = sheng_lafleur_signature)
+INFO [2018-09-04 16:33:14] 
+INFO [2018-09-04 16:33:14] $filename
+INFO [2018-09-04 16:33:14] [1] "./canadas_chiappinelli_intersect.png"
+INFO [2018-09-04 16:33:14] 
+INFO [2018-09-04 16:33:14] $main
+INFO [2018-09-04 16:33:14] [1] "Intersection between all DEX genes"
+INFO [2018-09-04 16:33:14] 
+INFO [2018-09-04 16:33:14] $imagetype
+INFO [2018-09-04 16:33:14] [1] "png"
+INFO [2018-09-04 16:33:14] 
+INFO [2018-09-04 16:33:14] $main.fontfamily
+INFO [2018-09-04 16:33:14] [1] "Arial"
+INFO [2018-09-04 16:33:14] 
+INFO [2018-09-04 16:33:14] $sub.fontfamily
+INFO [2018-09-04 16:33:14] [1] "Arial"
+INFO [2018-09-04 16:33:14] 

@@ -1,0 +1,7 @@
+INFO [2018-09-03 21:24:34] $x
+INFO [2018-09-03 21:24:34] list(chiappinelli = as.character(chiappinelli_ifn_signature_unique_genes), 
+INFO [2018-09-03 21:24:34]     canadas = canadas_ifn_signature_unique_genes, sheng_lafleur = sheng_lafleur_signature)
+INFO [2018-09-03 21:24:34] 
+INFO [2018-09-03 21:24:34] $filename
+INFO [2018-09-03 21:24:34] [1] "./canadas_chiappinelli_intersect.jpg"
+INFO [2018-09-03 21:24:34] 

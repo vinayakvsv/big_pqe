@@ -119,8 +119,10 @@ library(VennDiagram)
 chiap_canad_venn <- venn.diagram(x = list(chiappinelli = as.character(chiappinelli_ifn_signature_unique_genes),
                                           canadas = canadas_ifn_signature_unique_genes,
                                           sheng_lafleur = sheng_lafleur_signature),
-                                 filename = "./canadas_chiappinelli_intersect.jpg")
-
+                                 filename = "./canadas_chiappinelli_intersect.png",
+                                 main = "Intersection between all DEX genes",
+                                 imagetype = "png",
+                                 main.fontfamily = "Arial",sub.fontfamily = "Arial")
 ```
 
 ```{r}
@@ -236,6 +238,7 @@ rownames(gdac_selected_cancers.chiappinelli_tcga_mat) <- rownames(gdac_selected_
 ```
 
 ```{r chiappinelli_tcga_plot}
+pdf(file = "chiappinelli_DEX_all.pdf")
 chiappinelli_tcga_clust <- pheatmap(mat = log10(gdac_selected_cancers.chiappinelli_tcga_mat+1),
          show_colnames = FALSE,
          show_rownames = TRUE,
@@ -245,6 +248,7 @@ chiappinelli_tcga_clust <- pheatmap(mat = log10(gdac_selected_cancers.chiappinel
          legend_labels = c("log10(RSEM-scaled counts+1)"),
          cutree_rows = 4,
          main = c(paste("DEX genes from Li et al 2014 and Chiappinelli et al 2015\nin",ncol(gdac_selected_cancers.chiappinelli_tcga_mat),"TCGA samples")))
+dev.off()
 # plot(chiappinelli_tcga_clust)
 ```
 
@@ -288,6 +292,7 @@ rownames(gdac_selected_cancers.canadas_tcga_mat) <- as.character(canadas_split_n
 ```
 
 ```{r chiappinelli_tcga_plot}
+pdf(file = "canadas_DEX_all.pdf")
 canadas_tcga_clust <- pheatmap(mat = log10(gdac_selected_cancers.canadas_tcga_mat+1),
          show_colnames = FALSE,
          show_rownames = TRUE,
@@ -296,6 +301,7 @@ canadas_tcga_clust <- pheatmap(mat = log10(gdac_selected_cancers.canadas_tcga_ma
          legend_labels = c("log10(RSEM-scaled counts+1)"),
          cutree_rows = 4,
          main = c(paste("DEX genes from Canadas et al 2014 and Canadas et al 2018\nin",ncol(gdac_selected_cancers.chiappinelli_tcga_mat),"TCGA samples")))
+dev.off()
 # plot(chiappinelli_tcga_clust)
 ```
 
@@ -303,7 +309,8 @@ Cluster 2 seems to be a "lung inflammatory" sub-signature
 
 ```{r}
 gdac_selected_cancers.canadas_tcga_mat_3putr <- gdac_selected_cancers.canadas_tcga_mat[rownames(gdac_selected_cancers.canadas_tcga_mat) %in% 
-                                                                                         canadas_3putr_nsclc$GENE_SYMBOL,] 
+                                                                                         canadas_3putr_nsclc$GENE_SYMBOL,]
+pdf(file = "canadas_3pUTR_DEX_all.pdf")
 canadas_3putrerv_tcga_clust <- pheatmap(mat = log10(gdac_selected_cancers.canadas_tcga_mat_3putr+1),
          show_colnames = FALSE,
          show_rownames = TRUE,
@@ -312,6 +319,7 @@ canadas_3putrerv_tcga_clust <- pheatmap(mat = log10(gdac_selected_cancers.canada
          legend_labels = c("log10(RSEM-scaled counts+1)"),
          main = c(paste("3' UTR ERV-containing DEX genes from Canadas et al 2014 and\nCanadas et al 2018 in",ncol(gdac_selected_cancers.chiappinelli_tcga_mat),"TCGA samples")))
 # plot(chiappinelli_tcga_clust)
+dev.off()
 ```
 
 Most of the 3' UTR ERV-containing DEX genes are uniformly increased in expression across the tumors
@@ -356,6 +364,7 @@ rownames(gdac_selected_cancers.sheng_lafleur_tcga_mat) <- sapply(rownames(gdac_s
 ```
 
 ```{r sheng_lafleur_plot}
+pdf(file = "sheng_lafleur_DEX_all.pdf")
 sheng_lafleur_tcga_clust <- pheatmap(mat = log10(gdac_selected_cancers.sheng_lafleur_tcga_mat+1),
          show_colnames = FALSE,
          show_rownames = TRUE,
@@ -364,6 +373,19 @@ sheng_lafleur_tcga_clust <- pheatmap(mat = log10(gdac_selected_cancers.sheng_laf
          legend_labels = c("log10(RSEM-scaled counts+1)"),
          cutree_rows = 5,
          main = c(paste("DEX genes from Sheng and LaFleur et al 2018\nin",ncol(gdac_selected_cancers.chiappinelli_tcga_mat),"TCGA samples")))
+dev.off()
+
+png(file = "sheng_lafleur_DEX_all.png")
+sheng_lafleur_tcga_clust <- pheatmap(mat = log10(gdac_selected_cancers.sheng_lafleur_tcga_mat+1),
+         show_colnames = FALSE,
+         show_rownames = TRUE,
+         fontsize_row = 2.5,
+         annotation_col = gdac_selected_cancers_annot,
+         legend_labels = c("log10(RSEM-scaled counts+1)"),
+         cutree_rows = 5,
+         main = c(paste("DEX genes from Sheng and LaFleur et al 2018\nin",ncol(gdac_selected_cancers.chiappinelli_tcga_mat),"TCGA samples")))
+dev.off()
+
 # plot(chiappinelli_tcga_clust)
 ```
 
@@ -419,6 +441,7 @@ unified_sig_intersection <- unified_sig_intersection[order(unified_sig_intersect
 
 set.seed(0)
 nhclust <- 4
+pdf("unified_DEX_genes.pdf")
 unified_tcga_clust <- pheatmap(mat = log10(gdac_selected_cancers.unified_signature_tcga_mat+1),
          show_colnames = FALSE,
          show_rownames = FALSE,
@@ -427,8 +450,20 @@ unified_tcga_clust <- pheatmap(mat = log10(gdac_selected_cancers.unified_signatu
          annotation_row = unified_sig_intersection,
          cutree_rows = 4,
          legend_labels = c("log10(RSEM-scaled counts+1)"),
-         main = c(paste("DEX genes from Sheng and LaFleur et al 2018\nin",ncol(gdac_selected_cancers.chiappinelli_tcga_mat),"TCGA samples")))
+         main = c(paste("All DEX genes found in at least one dataset\nin",ncol(gdac_selected_cancers.chiappinelli_tcga_mat),"TCGA samples")))
+dev.off()
 
+# png("unified_DEX_genes.png")
+# unified_tcga_clust <- pheatmap(mat = log10(gdac_selected_cancers.unified_signature_tcga_mat+1),
+#          show_colnames = FALSE,
+#          show_rownames = FALSE,
+#          fontsize_row = 2.5,
+#          annotation_col = gdac_selected_cancers_annot,
+#          annotation_row = unified_sig_intersection,
+#          cutree_rows = 4,
+#          legend_labels = c("log10(RSEM-scaled counts+1)"),
+#          main = c(paste("All DEX genes found in at least one dataset\nin",ncol(gdac_selected_cancers.chiappinelli_tcga_mat),"TCGA samples")))
+# dev.off()
 unified_tcga_clust_hclusters <- cutree(tree = unified_tcga_clust$tree_row,k = nhclust)
 
 # plot(chiappinelli_tcga_clust)
@@ -448,18 +483,20 @@ rowannot_top_bottom_clusters <- data.frame(cluster = as.factor(c(highest_cluster
 rownames(rowannot_top_bottom_clusters) <- names(c(highest_cluster_unified_signature,
                                                      lowest_cluster_unified_signature))
 
+pdf("unified_DEX_genes.top_vs_bottom_clusters.pdf")
 unified_signature_tcga_mat.top_vs_bottom_clust <- pheatmap(mat = log10(gdac_selected_cancers.unified_signature_tcga_mat.top_vs_bottom+1),
          show_colnames = FALSE,
-         show_rownames = TRUE,
+         show_rownames = FALSE,
          cluster_cols = FALSE,
          fontsize_row = 5.0,
          annotation_col = gdac_selected_cancers_annot,
          annotation_row = rowannot_top_bottom_clusters,
-         cutree_rows = 3,
+         cutree_rows = 2,
          legend_labels = c("log10(RSEM-scaled counts+1)"),
          main = c(paste("Highest- and lowest-expressed gene sets of the",nrow(unified_sig_intersection),
-                        "in\n",ncol(gdac_selected_cancers.chiappinelli_tcga_mat),"TCGA samples")))
+                        "\nunique DEX genes in ",ncol(gdac_selected_cancers.chiappinelli_tcga_mat),"TCGA samples")))
 # plot(chiappinelli_tcga_clust)
+dev.off()
 
 
 var1_cluster_unified_signature <- unified_tcga_clust_hclusters[unified_tcga_clust_hclusters %in% 1]
@@ -472,17 +509,19 @@ rowannot_variable_clusters <- data.frame(cluster = as.factor(c(var1_cluster_unif
                                                                var2_cluster_unified_signature)))
 rownames(rowannot_variable_clusters) <- names(c(var1_cluster_unified_signature,
                                                 var2_cluster_unified_signature))
+pdf("unified_DEX_genes.middle_clusters.pdf")
 unified_signature_tcga_mat.top_vs_bottom_clust <- pheatmap(mat = log10(gdac_selected_cancers.unified_signature_tcga_mat.variable_exp+1),
          show_colnames = FALSE,
-         show_rownames = TRUE,
+         show_rownames = FALSE,
          cluster_cols = FALSE,
          fontsize_row = 2.5,
          annotation_col = gdac_selected_cancers_annot,
          annotation_row = rowannot_variable_clusters,
-         cutree_rows = 3,
+         cutree_rows = 2,
          legend_labels = c("log10(RSEM-scaled counts+1)"),
          main = c(paste("Middle-expressed gene sets of the",nrow(unified_sig_intersection),
-                        "in\n",ncol(gdac_selected_cancers.chiappinelli_tcga_mat),"TCGA samples")))
+                        "\nunique DEX genes in",ncol(gdac_selected_cancers.chiappinelli_tcga_mat),"TCGA samples")))
+dev.off()
 # plot(chiappinelli_tcga_clust)
 
 ```
@@ -609,7 +648,7 @@ ifn_highest <- gsva_enrich(counts = highest_unified_counts,
 pheatmap(mat = ifn_highest,
          annotation_col = gdac_selected_cancers_annot,
          show_colnames = FALSE,
-         fontsize = 3.0,
+         fontsize = 4.0,
          main=paste("IFN, highest-expression cluster"))
 
 # ifn_med2 <- gsva_enrich(counts = med2_unified_counts,geneset = interferon_genesets) # error is here
@@ -1086,6 +1125,7 @@ ylim_all <- max(canadas_3putr_brca_timer_signature,
                 sheng_lafleur_brca_timer_signature)
 
 # plot correlations
+par(mfrow = c(1,3))
 plot(x = brca_fmat[,1],
      y = chiappinelli_brca_timer_signature,
      xlim=c(0,max(brca_fmat)),
@@ -1137,31 +1177,31 @@ legend(x = "bottomright",
        pch=20,
        cex = 0.75)
 
-# plot correlations for Canadas 3' UTR ERV-containing genes (sense and antisense)
-plot(x = brca_fmat[,1],
-     y = canadas_3putr_brca_timer_signature,
-     xlim=c(0,max(brca_fmat)),
-     ylim=c(0,ylim_all),
-     xlab=c("TIMER value"),
-     ylab=c("Median IFN-viral signature value (log10(counts))"),
-     type = "n",
-     main = paste0("Canadas (3' UTR ERV-containing genes) signature-TIMER correlation, BRCA"))
-canadas_3putr_brca_timer_signature_cor <- lapply(X = seq_along(brca_fmat),
-      function(x) {
-        points(y = canadas_3putr_brca_timer_signature,
-             x = brca_fmat[,x],
-             pch=20,
-             col = brca_fmat_colors[x])
-        timer_positive_subset_ind <- brca_fmat[,x] > 0
-        cor(x = canadas_3putr_brca_timer_signature[timer_positive_subset_ind],
-            y = brca_fmat[timer_positive_subset_ind,x])
-      })
-names(canadas_3putr_brca_timer_signature_cor) <- names(brca_fmat)
-legend(x = "bottomright",
-       legend = colnames(brca_fmat),
-       col = brca_fmat_colors,
-       pch=20,
-       cex = 0.75)
+# # plot correlations for Canadas 3' UTR ERV-containing genes (sense and antisense)
+# plot(x = brca_fmat[,1],
+#      y = canadas_3putr_brca_timer_signature,
+#      xlim=c(0,max(brca_fmat)),
+#      ylim=c(0,ylim_all),
+#      xlab=c("TIMER value"),
+#      ylab=c("Median IFN-viral signature value (log10(counts))"),
+#      type = "n",
+#      main = paste0("Canadas (3' UTR ERV-containing genes) signature-TIMER correlation, BRCA"))
+# canadas_3putr_brca_timer_signature_cor <- lapply(X = seq_along(brca_fmat),
+#       function(x) {
+#         points(y = canadas_3putr_brca_timer_signature,
+#              x = brca_fmat[,x],
+#              pch=20,
+#              col = brca_fmat_colors[x])
+#         timer_positive_subset_ind <- brca_fmat[,x] > 0
+#         cor(x = canadas_3putr_brca_timer_signature[timer_positive_subset_ind],
+#             y = brca_fmat[timer_positive_subset_ind,x])
+#       })
+# names(canadas_3putr_brca_timer_signature_cor) <- names(brca_fmat)
+# legend(x = "bottomright",
+#        legend = colnames(brca_fmat),
+#        col = brca_fmat_colors,
+#        pch=20,
+#        cex = 0.75)
 
 # plot correlations
 plot(x = brca_fmat[,1],
@@ -1220,6 +1260,7 @@ sheng_lafleur_ov_timer_signature <- sheng_lafleur_ifn_signature_median[temp_i]
 ov_fmat_colors <- rainbow(n = ncol(ov_fmat))
 
 # plot correlations
+par(mfrow = c(1,3))
 plot(x = ov_fmat[,1],
      y = chiappinelli_ov_timer_signature,
      xlim=c(0,max(ov_fmat)),
@@ -1271,31 +1312,31 @@ legend(x = "bottomright",
        pch=20,
        cex = 0.75)
 
-# plot correlations for Canadas 3' UTR ERV-containing genes (sense and antisense)
-plot(x = ov_fmat[,1],
-     y = canadas_3putr_ov_timer_signature,
-     xlim=c(0,max(ov_fmat)),
-     ylim=c(0,ylim_all),
-     xlab=c("TIMER value"),
-     ylab=c("Median IFN-viral signature value (log10(counts))"),
-     type = "n",
-     main = paste0("Canadas (3' UTR ERV-containing genes) signature-TIMER correlation, ov"))
-canadas_3putr_ov_timer_signature_cor <- lapply(X = seq_along(ov_fmat),
-      function(x) {
-        points(y = canadas_3putr_ov_timer_signature,
-             x = ov_fmat[,x],
-             pch=20,
-             col = ov_fmat_colors[x])
-        timer_positive_subset_ind <- ov_fmat[,x] > 0
-        cor(x = canadas_3putr_ov_timer_signature[timer_positive_subset_ind],
-            y = ov_fmat[timer_positive_subset_ind,x])
-      })
-names(canadas_3putr_ov_timer_signature_cor) <- names(ov_fmat)
-legend(x = "bottomright",
-       legend = colnames(ov_fmat),
-       col = ov_fmat_colors,
-       pch=20,
-       cex = 0.75)
+# # plot correlations for Canadas 3' UTR ERV-containing genes (sense and antisense)
+# plot(x = ov_fmat[,1],
+#      y = canadas_3putr_ov_timer_signature,
+#      xlim=c(0,max(ov_fmat)),
+#      ylim=c(0,ylim_all),
+#      xlab=c("TIMER value"),
+#      ylab=c("Median IFN-viral signature value (log10(counts))"),
+#      type = "n",
+#      main = paste0("Canadas (3' UTR ERV-containing genes) signature-TIMER correlation, ov"))
+# canadas_3putr_ov_timer_signature_cor <- lapply(X = seq_along(ov_fmat),
+#       function(x) {
+#         points(y = canadas_3putr_ov_timer_signature,
+#              x = ov_fmat[,x],
+#              pch=20,
+#              col = ov_fmat_colors[x])
+#         timer_positive_subset_ind <- ov_fmat[,x] > 0
+#         cor(x = canadas_3putr_ov_timer_signature[timer_positive_subset_ind],
+#             y = ov_fmat[timer_positive_subset_ind,x])
+#       })
+# names(canadas_3putr_ov_timer_signature_cor) <- names(ov_fmat)
+# legend(x = "bottomright",
+#        legend = colnames(ov_fmat),
+#        col = ov_fmat_colors,
+#        pch=20,
+#        cex = 0.75)
 
 # plot correlations
 plot(x = ov_fmat[,1],
@@ -1353,6 +1394,7 @@ sheng_lafleur_lusc_timer_signature <- sheng_lafleur_ifn_signature_median[temp_i]
 lusc_fmat_colors <- rainbow(n = ncol(lusc_fmat))
 
 # plot correlations
+par(mfrow = c(1,3))
 plot(x = lusc_fmat[,1],
      y = chiappinelli_lusc_timer_signature,
      xlim=c(0,max(lusc_fmat)),
@@ -1404,31 +1446,31 @@ legend(x = "bottomright",
        pch=20,
        cex = 0.75)
 
-# plot correlations for Canadas 3' UTR ERV-containing genes (sense and antisense)
-plot(x = lusc_fmat[,1],
-     y = canadas_3putr_lusc_timer_signature,
-     xlim=c(0,max(lusc_fmat)),
-     ylim=c(0,ylim_all),
-     xlab=c("TIMER value"),
-     ylab=c("Median IFN-viral signature value (log10(counts))"),
-     type = "n",
-     main = paste0("Canadas (3' UTR ERV-containing genes) signature-TIMER correlation, lusc"))
-canadas_3putr_lusc_timer_signature_cor <- lapply(X = seq_along(lusc_fmat),
-      function(x) {
-        points(y = canadas_3putr_lusc_timer_signature,
-             x = lusc_fmat[,x],
-             pch=20,
-             col = lusc_fmat_colors[x])
-        timer_positive_subset_ind <- lusc_fmat[,x] > 0
-        cor(x = canadas_3putr_lusc_timer_signature[timer_positive_subset_ind],
-            y = lusc_fmat[timer_positive_subset_ind,x])
-      })
-names(canadas_3putr_lusc_timer_signature_cor) <- names(lusc_fmat)
-legend(x = "bottomright",
-       legend = colnames(lusc_fmat),
-       col = lusc_fmat_colors,
-       pch=20,
-       cex = 0.75)
+# # plot correlations for Canadas 3' UTR ERV-containing genes (sense and antisense)
+# plot(x = lusc_fmat[,1],
+#      y = canadas_3putr_lusc_timer_signature,
+#      xlim=c(0,max(lusc_fmat)),
+#      ylim=c(0,ylim_all),
+#      xlab=c("TIMER value"),
+#      ylab=c("Median IFN-viral signature value (log10(counts))"),
+#      type = "n",
+#      main = paste0("Canadas (3' UTR ERV-containing genes) signature-TIMER correlation, lusc"))
+# canadas_3putr_lusc_timer_signature_cor <- lapply(X = seq_along(lusc_fmat),
+#       function(x) {
+#         points(y = canadas_3putr_lusc_timer_signature,
+#              x = lusc_fmat[,x],
+#              pch=20,
+#              col = lusc_fmat_colors[x])
+#         timer_positive_subset_ind <- lusc_fmat[,x] > 0
+#         cor(x = canadas_3putr_lusc_timer_signature[timer_positive_subset_ind],
+#             y = lusc_fmat[timer_positive_subset_ind,x])
+#       })
+# names(canadas_3putr_lusc_timer_signature_cor) <- names(lusc_fmat)
+# legend(x = "bottomright",
+#        legend = colnames(lusc_fmat),
+#        col = lusc_fmat_colors,
+#        pch=20,
+#        cex = 0.75)
 
 # plot correlations
 plot(x = lusc_fmat[,1],
@@ -1487,6 +1529,7 @@ sheng_lafleur_coad_timer_signature <- sheng_lafleur_ifn_signature_median[temp_i]
 coad_fmat_colors <- rainbow(n = ncol(coad_fmat))
 
 # plot correlations
+par(mfrow = c(1,3))
 plot(x = coad_fmat[,1],
      y = chiappinelli_coad_timer_signature,
      xlim=c(0,max(coad_fmat)),
@@ -1538,31 +1581,31 @@ legend(x = "bottomright",
        pch=20,
        cex = 0.75)
 
-# plot correlations for Canadas 3' UTR ERV-containing genes (sense and antisense)
-plot(x = coad_fmat[,1],
-     y = canadas_3putr_coad_timer_signature,
-     xlim=c(0,max(coad_fmat)),
-     ylim=c(0,ylim_all),
-     xlab=c("TIMER value"),
-     ylab=c("Median IFN-viral signature value (log10(counts))"),
-     type = "n",
-     main = paste0("Canadas (3' UTR ERV-containing genes) signature-TIMER correlation, coad"))
-canadas_3putr_coad_timer_signature_cor <- lapply(X = seq_along(coad_fmat),
-      function(x) {
-        points(y = canadas_3putr_coad_timer_signature,
-             x = coad_fmat[,x],
-             pch=20,
-             col = coad_fmat_colors[x])
-        timer_positive_subset_ind <- coad_fmat[,x] > 0
-        cor(x = canadas_3putr_coad_timer_signature[timer_positive_subset_ind],
-            y = coad_fmat[timer_positive_subset_ind,x])
-      })
-names(canadas_3putr_coad_timer_signature_cor) <- names(coad_fmat)
-legend(x = "bottomright",
-       legend = colnames(coad_fmat),
-       col = coad_fmat_colors,
-       pch=20,
-       cex = 0.75)
+# # plot correlations for Canadas 3' UTR ERV-containing genes (sense and antisense)
+# plot(x = coad_fmat[,1],
+#      y = canadas_3putr_coad_timer_signature,
+#      xlim=c(0,max(coad_fmat)),
+#      ylim=c(0,ylim_all),
+#      xlab=c("TIMER value"),
+#      ylab=c("Median IFN-viral signature value (log10(counts))"),
+#      type = "n",
+#      main = paste0("Canadas (3' UTR ERV-containing genes) signature-TIMER correlation, coad"))
+# canadas_3putr_coad_timer_signature_cor <- lapply(X = seq_along(coad_fmat),
+#       function(x) {
+#         points(y = canadas_3putr_coad_timer_signature,
+#              x = coad_fmat[,x],
+#              pch=20,
+#              col = coad_fmat_colors[x])
+#         timer_positive_subset_ind <- coad_fmat[,x] > 0
+#         cor(x = canadas_3putr_coad_timer_signature[timer_positive_subset_ind],
+#             y = coad_fmat[timer_positive_subset_ind,x])
+#       })
+# names(canadas_3putr_coad_timer_signature_cor) <- names(coad_fmat)
+# legend(x = "bottomright",
+#        legend = colnames(coad_fmat),
+#        col = coad_fmat_colors,
+#        pch=20,
+#        cex = 0.75)
 
 # plot correlations
 plot(x = coad_fmat[,1],
@@ -1647,6 +1690,254 @@ gdac_selected_cancers_annot_lusc$CD8 <- lusc_fmat$T_cell.CD8
 gdac_selected_cancers_annot_coad$CD8 <- coad_fmat$T_cell.CD8
 
 ```
+
+# ERV gene expression and tumor infiltration
+
+```{r}
+print(rownames(brca_gdac)[grep(pattern = "ERV",x = rownames(brca_gdac))])
+print(rownames(ov_gdac)[grep(pattern = "ERV",x = rownames(ov_gdac))])
+print(rownames(lusc_gdac)[grep(pattern = "ERV",x = rownames(lusc_gdac))])
+print(rownames(coad_gdac)[grep(pattern = "ERV",x = rownames(coad_gdac))])
+# what is the correlation between the expression of this ERV gene and immune infiltration?
+
+```
+
+The ERV gene "ERVFRDE1" (endogenous retrovirus group FRD member 1, envelope) is present within the processed TCGA data; any additional expression quantification of other ERV's from the TCGA dataset (in particular "TotalRNAseqv2" data) will require raw reads for which I need dbGAP approval (as raw reads are controlled access, since they contain actual patient sequence data). As a rough attempt to study correlations between ERV gene expression from TCGA and immune infiltration, we will correlate the two. 
+
+We use ERVFRDE1 as a *very* rough proxy of ERV expression, since it is part of an inactivated provirus on chromosome 7 of the human genome (it is thought to be important for trophoblast biology). 
+
+```{r}
+brca_gdac_ervfrde1 <- brca_gdac[grep(pattern = "ERV",x = rownames(brca_gdac)),]
+coad_gdac_ervfrde1 <- coad_gdac[grep(pattern = "ERV",x = rownames(coad_gdac)),]
+lusc_gdac_ervfrde1 <- lusc_gdac[grep(pattern = "ERV",x = rownames(lusc_gdac)),]
+ov_gdac_ervfrde1 <- ov_gdac[grep(pattern = "ERV",x = rownames(ov_gdac)),]
+
+# brca
+plot(log10(as.numeric(brca_gdac_ervfrde1)),
+     brca_fmat[,1],
+     col=as.factor(brca_fmat[,1] > 0),
+     main = paste("TIMER-inferred Immune subset versus ERVFRDE1 expression in BRCA"),
+     type = "n",
+     xlim=c(0,5),
+     ylim=c(0,3),
+     pch=20)
+sapply(X = seq_len(ncol(brca_fmat)),
+       FUN = function(x) {
+         points(log10(as.numeric(brca_gdac_ervfrde1)),
+              brca_fmat[,x],
+              col=brca_fmat_colors[x],
+              pch=20)
+              #col=as.factor(brca_fmat[,x] > 0),
+              # pch=20)
+       })
+legend(x = "topright",
+       legend = colnames(coad_fmat),
+       col = coad_fmat_colors,
+       pch=20,
+       cex = 0.75)
+
+# coad
+plot(log10(as.numeric(coad_gdac_ervfrde1)),
+     coad_fmat[,1],
+     col=as.factor(coad_fmat[,1] > 0),
+     main = paste("TIMER-inferred Immune subset versus ERVFRDE1 expression in COAD"),
+     type = "n",
+     xlim=c(0,5),
+     ylim=c(0,3),
+     pch=20)
+sapply(X = seq_len(ncol(coad_fmat)),
+       FUN = function(x) {
+         points(log10(as.numeric(coad_gdac_ervfrde1)),
+              coad_fmat[,x],
+              col=coad_fmat_colors[x],
+              pch=20)
+       })
+legend(x = "topright",
+       legend = colnames(coad_fmat),
+       col = coad_fmat_colors,
+       pch=20,
+       cex = 0.75)
+
+# lusc
+plot(log10(as.numeric(lusc_gdac_ervfrde1)),
+     lusc_fmat[,1],
+     col=as.factor(lusc_fmat[,1] > 0),
+     main = paste("TIMER-inferred Immune subset versus ERVFRDE1 expression in LUSC"),
+     type = "n",
+     xlim=c(0,5),
+     ylim=c(0,3),
+     pch=20)
+sapply(X = seq_len(ncol(lusc_fmat)),
+       FUN = function(x) {
+         points(log10(as.numeric(lusc_gdac_ervfrde1)),
+              lusc_fmat[,x],
+              col=lusc_fmat_colors[x],
+              pch=20)
+       })
+legend(x = "topright",
+       legend = colnames(coad_fmat),
+       col = coad_fmat_colors,
+       pch=20,
+       cex = 0.75)
+
+# ov
+plot(log10(as.numeric(ov_gdac_ervfrde1)),
+     ov_fmat[,1],
+     col=as.factor(ov_fmat[,1] > 0),
+     main = paste("TIMER-inferred Immune subset versus ERVFRDE1 expression in OV"),
+     type = "n",
+     xlim=c(0,5),
+     ylim=c(0,3),
+     pch=20)
+sapply(X = seq_len(ncol(ov_fmat)),
+       FUN = function(x) {
+         points(log10(as.numeric(ov_gdac_ervfrde1)),
+              ov_fmat[,x],
+              col=coad_fmat_colors[x],
+              pch=20)
+       })
+legend(x = "topright",
+       legend = colnames(coad_fmat),
+       col = coad_fmat_colors,
+       pch=20,
+       cex = 0.75)
+
+
+```
+
+ERVFRDE1 production and estimated immune cell enrichment (for all subsets studied) in the TCGA tumor samples are weakly correlated. Without raw RNA-seq data for TCGA, we cannot definitely state whether directly-measured ERV gene expression is correlated with immune infiltration. 
+
+Additionally, the signatures that we obtained do not correlate very well with the individual signatures
+```{r}
+# BRCA
+plot(as.numeric(chiappinelli_brca_timer_signature),
+     log10(as.numeric(brca_gdac_ervfrde1)),
+     col=c("red"),
+     main = paste("brca median signature value versus ERVFRDE1 expression in brca"),
+     xlim=c(0,4),
+     ylim=c(0,4),
+     xlab = c("Median log10(IFN-viral signature+1)"),
+     ylab = c("log10(ERVFRDE1)"),
+     pch=20)
+points(as.numeric(canadas_brca_timer_signature),
+     log10(as.numeric(brca_gdac_ervfrde1)),
+     col=c("blue"),
+     pch=20)
+points(as.numeric(canadas_3putr_brca_timer_signature),
+     log10(as.numeric(brca_gdac_ervfrde1)),
+     col=c("orange"),
+     pch=20)
+points(as.numeric(sheng_lafleur_brca_timer_signature),
+     log10(as.numeric(brca_gdac_ervfrde1)),
+     col=c("grey"),
+     pch=20)
+legend("topleft",
+       legend = c("Chiappinelli",
+                  "Canadas",
+                  "Canadas 3' UTR ERV-containing genes",
+                  "Sheng and LaFleur"),
+       col = c("red","blue","orange","grey"),cex = 0.75,
+       pch = 20)
+
+# OV
+plot(as.numeric(chiappinelli_ov_timer_signature),
+     log10(as.numeric(ov_gdac_ervfrde1)),
+     col=c("red"),
+     main = paste("ov median signature value versus ERVFRDE1 expression in ov"),
+     xlim=c(0,4),
+     ylim=c(0,4),
+     xlab = c("Median log10(IFN-viral signature+1)"),
+     ylab = c("log10(ERVFRDE1)"),
+     pch=20)
+points(as.numeric(canadas_ov_timer_signature),
+     log10(as.numeric(ov_gdac_ervfrde1)),
+     col=c("blue"),
+     pch=20)
+points(as.numeric(canadas_3putr_ov_timer_signature),
+     log10(as.numeric(ov_gdac_ervfrde1)),
+     col=c("orange"),
+     pch=20)
+points(as.numeric(sheng_lafleur_ov_timer_signature),
+     log10(as.numeric(ov_gdac_ervfrde1)),
+     col=c("grey"),
+     pch=20)
+legend("topleft",
+       legend = c("Chiappinelli",
+                  "Canadas",
+                  "Canadas 3' UTR ERV-containing genes",
+                  "Sheng and LaFleur"),
+       col = c("red","blue","orange","grey"),cex = 0.75,
+       pch = 20)
+
+# LUSC
+plot(as.numeric(chiappinelli_lusc_timer_signature),
+     log10(as.numeric(lusc_gdac_ervfrde1)),
+     col=c("red"),
+     main = paste("lusc median signature value versus ERVFRDE1 expression in lusc"),
+     xlim=c(0,4),
+     ylim=c(0,4),
+     xlab = c("Median log10(IFN-viral signature+1)"),
+     ylab = c("log10(ERVFRDE1)"),
+     pch=20)
+points(as.numeric(canadas_lusc_timer_signature),
+     log10(as.numeric(lusc_gdac_ervfrde1)),
+     col=c("blue"),
+     pch=20)
+points(as.numeric(canadas_3putr_lusc_timer_signature),
+     log10(as.numeric(lusc_gdac_ervfrde1)),
+     col=c("orange"),
+     pch=20)
+points(as.numeric(sheng_lafleur_lusc_timer_signature),
+     log10(as.numeric(lusc_gdac_ervfrde1)),
+     col=c("grey"),
+     pch=20)
+legend("topleft",
+       legend = c("Chiappinelli",
+                  "Canadas",
+                  "Canadas 3' UTR ERV-containing genes",
+                  "Sheng and LaFleur"),
+       col = c("red","blue","orange","grey"),cex = 0.75,
+       pch = 20)
+
+# COAD
+plot(as.numeric(chiappinelli_coad_timer_signature),
+     log10(as.numeric(coad_gdac_ervfrde1)),
+     col=c("red"),
+     main = paste("coad median signature value versus ERVFRDE1 expression in coad"),
+     xlim=c(0,4),
+     ylim=c(0,4),
+     xlab = c("Median log10(IFN-viral signature+1)"),
+     ylab = c("log10(ERVFRDE1)"),
+     pch=20)
+points(as.numeric(canadas_coad_timer_signature),
+     log10(as.numeric(coad_gdac_ervfrde1)),
+     col=c("blue"),
+     pch=20)
+points(as.numeric(canadas_3putr_coad_timer_signature),
+     log10(as.numeric(coad_gdac_ervfrde1)),
+     col=c("orange"),
+     pch=20)
+points(as.numeric(sheng_lafleur_coad_timer_signature),
+     log10(as.numeric(coad_gdac_ervfrde1)),
+     col=c("grey"),
+     pch=20)
+legend("topleft",
+       legend = c("Chiappinelli",
+                  "Canadas",
+                  "Canadas 3' UTR ERV-containing genes",
+                  "Sheng and LaFleur"),
+       col = c("red","blue","orange","grey"),cex = 0.75,
+       pch = 20)
+
+
+```
+
+
+## Urothelial cancer ERVs vs immune infiltration
+
+I also downloaded a recent dataset from Snyder et al PLoS 2017 (https://journals.plos.org/plosmedicine/article?id=10.1371/journal.pmed.1002309#sec008) of urothelial cancer patients that were on anti-CTLA-4 therapy. Solovyok et al Cell Reports 2018 (https://www.cell.com/cell-reports/pdf/S2211-1247(18)30384-X.pdf) analyzed this dataset to examine correlations between ERV gene expression and patient outcomes, but we will mine this dataset to examine ERV expression corerlations with immune infiltration (as the RNA-seq samples are of patient biopsies). 
+
+<do this after you paste the other figures>
 
 # Conclusions
 
