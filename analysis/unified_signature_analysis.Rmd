@@ -498,7 +498,7 @@ print(names(lowest_cluster_unified_signature))
 
 How enriched are the four main TCGA-IFN-viral signatures for different gene sets? 
 ```{r get_genesets}
-
+prepare_gsva()
 # from the Li et al oncotarget 2014 paper
 interferon_genesets <- import_gmt(gmtfile = "../referenceAnnot/genesets/hg38/custom/msigdb_interferon.gmt")
 cytochemokine_genesets <- import_gmt(gmtfile = "../referenceAnnot/genesets/hg38/custom/msigdb_cytochemokine.gmt")
@@ -603,9 +603,9 @@ tcga_gsva_enrich_by_clus <- lapply(seq_along(along.with = tcga_cluster_counts),
 ```
 
 Perform the GSVA enrichment for IFN-related signatures analysis
-```{r}
+```{}
 ifn_highest <- gsva_enrich(counts = highest_unified_counts,
-                           geneset = interferon_genesets)
+                           geneset = interferon_genesets) 
 pheatmap(mat = ifn_highest,
          annotation_col = gdac_selected_cancers_annot,
          show_colnames = FALSE,
@@ -613,7 +613,7 @@ pheatmap(mat = ifn_highest,
          main=paste("IFN, highest-expression cluster"))
 
 ifn_med1 <- gsva_enrich(counts = med2_unified_counts,
-                           geneset = interferon_genesets)
+                           geneset = interferon_genesets) # error is here
 pheatmap(mat = ifn_med1,
          annotation_col = gdac_selected_cancers_annot,
          show_colnames = FALSE,
@@ -656,28 +656,273 @@ signature_median <- function(sig1,sig2) {
   n_sig1 <- length(sig1)
   n_sig2 <- length(sig2)
   # boot_sig1 <- median(sample(sig1,n_sig1,replace=TRUE))
-  boot_sig1 <- median(apply(sig1,MARGIN=1,function(x) {sample(x,1,replace=TRUE)}))
-  boot_sig2 <- median(apply(sig2,MARGIN=1,function(x) {sample(x,1,replace=TRUE)}))
+  boot_sig1 <- median(apply(X = sig1,
+                            MARGIN=1,
+                            FUN = function(x) {
+                              sample(x,1,replace=TRUE)
+                              }
+                            ))
+  boot_sig2 <- median(apply(sig2,
+                            MARGIN=1,
+                            function(x) {
+                              sample(x,1,replace=TRUE)
+                              }
+                            ))
   # boot_sig2 <- median(sample(sig2,n_sig2,replace=TRUE))
   
   boot_x <- c(boot_sig1,boot_sig2)
   return(boot_x)
 }
 
-estimate_corr_median_signatures <- function(sig1_counts,sig2_counts,K=30) {
-  median_boot <- lapply(seq_len(K),function(x) {signature_median_bootstrapping(sig1,sig2)})
-  median_boot <- do.call(cbind,median_boot)
-  boot_corr <- corr(median_boot[,1],median_boot[,2])
+estimate_corr_median_signatures <- function(sig1,sig2,K=30) {
+  median_boot <- lapply(seq_len(K),function(x) {signature_median(sig1,sig2)})
+  median_boot <- do.call(rbind,median_boot)
+  boot_corr <- cor(x = median_boot[,1],y = median_boot[,2])
   return(boot_corr)
 }
 
+```
+
+## For the human signatures from the three papers
+
+```{r}
+# chiappinelli vs canadas
 R <- 100
-bootstrap_corr_medians <- rep(estimate_corr_median_signatures(sig1_counts,sig2_counts),R)
 
-mean_corr <- mean(bootstrap_corr_medians)
-ci_corr <- quantile(mean_corr,c(0.025,0.975))
+# get OV samples
+gdac_selected_cancers_annot_ov <- subset(gdac_selected_cancers_annot,TCGA %in% c("OV"))
+sig1_counts <- gdac_selected_cancers.chiappinelli_tcga_mat[,colnames(gdac_selected_cancers.chiappinelli_tcga_mat) %in% rownames(gdac_selected_cancers_annot_ov)]
+sig2_counts <- gdac_selected_cancers.canadas_tcga_mat[,colnames(gdac_selected_cancers.canadas_tcga_mat) %in% rownames(gdac_selected_cancers_annot_ov)]
+bootstrap_corr_medians_ov <- sapply(X = seq_len(R),
+                                 function(x) {
+                                   estimate_corr_median_signatures(sig1_counts,sig2_counts)
+                                 })
+hist(bootstrap_corr_medians_ov)
+mean_corr_ov.chiappinelli_canadas <- mean(bootstrap_corr_medians_ov)
+ci_corr_ov.chiappinelli_canadas <- quantile(bootstrap_corr_medians_ov,c(0.025,0.975))
 
+# get BRCA samples
+gdac_selected_cancers_annot_brca <- subset(gdac_selected_cancers_annot,TCGA %in% c("BRCA"))
+sig1_counts <- gdac_selected_cancers.chiappinelli_tcga_mat[,colnames(gdac_selected_cancers.chiappinelli_tcga_mat) %in% rownames(gdac_selected_cancers_annot_brca)]
+sig2_counts <- gdac_selected_cancers.canadas_tcga_mat[,colnames(gdac_selected_cancers.canadas_tcga_mat) %in% rownames(gdac_selected_cancers_annot_brca)]
+bootstrap_corr_medians_brca <- sapply(X = seq_len(R),
+                                 function(x) {
+                                   estimate_corr_median_signatures(sig1_counts,sig2_counts)
+                                 })
+hist(bootstrap_corr_medians_brca)
+mean_corr_brca.chiappinelli_canadas <- mean(bootstrap_corr_medians_brca)
+ci_corr_brca.chiappinelli_canadas <- quantile(bootstrap_corr_medians_brca,c(0.025,0.975))
+
+# get COAD samples
+gdac_selected_cancers_annot_coad <- subset(gdac_selected_cancers_annot,TCGA %in% c("COAD"))
+sig1_counts <- gdac_selected_cancers.chiappinelli_tcga_mat[,colnames(gdac_selected_cancers.chiappinelli_tcga_mat) %in% rownames(gdac_selected_cancers_annot_coad)]
+sig2_counts <- gdac_selected_cancers.canadas_tcga_mat[,colnames(gdac_selected_cancers.canadas_tcga_mat) %in% rownames(gdac_selected_cancers_annot_coad)]
+bootstrap_corr_medians_coad <- sapply(X = seq_len(R),
+                                 function(x) {
+                                   estimate_corr_median_signatures(sig1_counts,sig2_counts)
+                                 })
+hist(bootstrap_corr_medians_coad)
+mean_corr_coad.chiappinelli_canadas <- mean(bootstrap_corr_medians_coad)
+ci_corr_coad.chiappinelli_canadas <- quantile(bootstrap_corr_medians_coad,c(0.025,0.975))
+
+# get LUSC samples
+gdac_selected_cancers_annot_lusc <- subset(gdac_selected_cancers_annot,TCGA %in% c("LUSC"))
+sig1_counts <- gdac_selected_cancers.chiappinelli_tcga_mat[,colnames(gdac_selected_cancers.chiappinelli_tcga_mat) %in% rownames(gdac_selected_cancers_annot_lusc)]
+sig2_counts <- gdac_selected_cancers.canadas_tcga_mat[,colnames(gdac_selected_cancers.canadas_tcga_mat) %in% rownames(gdac_selected_cancers_annot_lusc)]
+bootstrap_corr_medians_lusc <- sapply(X = seq_len(R),
+                                 function(x) {
+                                   estimate_corr_median_signatures(sig1_counts,sig2_counts)
+                                 })
+hist(bootstrap_corr_medians_lusc)
+mean_corr_lusc.chiappinelli_canadas <- mean(bootstrap_corr_medians_lusc)
+ci_corr_lusc.chiappinelli_canadas <- quantile(bootstrap_corr_medians_lusc,c(0.025,0.975))
 
 ```
 
 
+```{r}
+# chiappinelli vs sheng/lafleur
+# get OV samples
+gdac_selected_cancers_annot_ov <- subset(gdac_selected_cancers_annot,TCGA %in% c("OV"))
+sig1_counts <- gdac_selected_cancers.chiappinelli_tcga_mat[,colnames(gdac_selected_cancers.chiappinelli_tcga_mat) %in% rownames(gdac_selected_cancers_annot_ov)]
+sig2_counts <- gdac_selected_cancers.sheng_lafleur_tcga_mat[,colnames(gdac_selected_cancers.sheng_lafleur_tcga_mat) %in% rownames(gdac_selected_cancers_annot_ov)]
+bootstrap_corr_medians_ov.chiappinelli_sheng_lafleur <- sapply(X = seq_len(R),
+                                 function(x) {
+                                   estimate_corr_median_signatures(sig1_counts,sig2_counts)
+                                 })
+hist(bootstrap_corr_medians_ov.chiappinelli_sheng_lafleur)
+mean_corr_ov.chiappinelli_sheng_lafleur <- mean(bootstrap_corr_medians_ov.chiappinelli_sheng_lafleur)
+ci_corr_ov.chiappinelli_sheng_lafleur <- quantile(bootstrap_corr_medians_ov.chiappinelli_sheng_lafleur,c(0.025,0.975))
+
+# get BRCA samples
+gdac_selected_cancers_annot_brca <- subset(gdac_selected_cancers_annot,TCGA %in% c("BRCA"))
+sig1_counts <- gdac_selected_cancers.chiappinelli_tcga_mat[,colnames(gdac_selected_cancers.chiappinelli_tcga_mat) %in% rownames(gdac_selected_cancers_annot_brca)]
+sig2_counts <- gdac_selected_cancers.sheng_lafleur_tcga_mat[,colnames(gdac_selected_cancers.sheng_lafleur_tcga_mat) %in% rownames(gdac_selected_cancers_annot_brca)]
+bootstrap_corr_medians_brca.chiappinelli_sheng_lafleur <- sapply(X = seq_len(R),
+                                 function(x) {
+                                   estimate_corr_median_signatures(sig1_counts,sig2_counts)
+                                 })
+hist(bootstrap_corr_medians_brca.chiappinelli_sheng_lafleur)
+mean_corr_brca.chiappinelli_sheng_lafleur <- mean(bootstrap_corr_medians_brca.chiappinelli_sheng_lafleur)
+ci_corr_brca.chiappinelli_sheng_lafleur <- quantile(bootstrap_corr_medians_brca.chiappinelli_sheng_lafleur,c(0.025,0.975))
+
+# get COAD samples
+gdac_selected_cancers_annot_coad. <- subset(gdac_selected_cancers_annot,TCGA %in% c("COAD"))
+sig1_counts <- gdac_selected_cancers.chiappinelli_tcga_mat[,colnames(gdac_selected_cancers.chiappinelli_tcga_mat) %in% rownames(gdac_selected_cancers_annot_coad)]
+sig2_counts <- gdac_selected_cancers.sheng_lafleur_tcga_mat[,colnames(gdac_selected_cancers.sheng_lafleur_tcga_mat) %in% rownames(gdac_selected_cancers_annot_coad)]
+bootstrap_corr_medians_coad.chiappinelli_sheng_lafleur <- sapply(X = seq_len(R),
+                                 function(x) {
+                                   estimate_corr_median_signatures(sig1_counts,sig2_counts)
+                                 })
+mean_corr_coad.chiappinelli_sheng_lafleur <- mean(bootstrap_corr_medians_coad.chiappinelli_sheng_lafleur)
+ci_corr_coad.chiappinelli_sheng_lafleur <- quantile(bootstrap_corr_medians_coad.chiappinelli_sheng_lafleur,c(0.025,0.975))
+
+# get LUSC samples
+gdac_selected_cancers_annot_lusc <- subset(gdac_selected_cancers_annot,TCGA %in% c("LUSC"))
+sig1_counts <- gdac_selected_cancers.chiappinelli_tcga_mat[,colnames(gdac_selected_cancers.chiappinelli_tcga_mat) %in% rownames(gdac_selected_cancers_annot_lusc)]
+sig2_counts <- gdac_selected_cancers.sheng_lafleur_tcga_mat[,colnames(gdac_selected_cancers.sheng_lafleur_tcga_mat) %in% rownames(gdac_selected_cancers_annot_lusc)]
+bootstrap_corr_medians_lusc.chiappinelli_sheng_lafleur <- sapply(X = seq_len(R),
+                                 function(x) {
+                                   estimate_corr_median_signatures(sig1_counts,sig2_counts)
+                                 })
+mean_corr_lusc.chiappinelli_sheng_lafleur <- mean(bootstrap_corr_medians_lusc.chiappinelli_sheng_lafleur)
+ci_corr_lusc.chiappinelli_sheng_lafleur <- quantile(bootstrap_corr_medians_lusc.chiappinelli_sheng_lafleur,c(0.025,0.975))
+
+hist(bootstrap_corr_medians_ov.chiappinelli_sheng_lafleur)
+hist(bootstrap_corr_medians_brca.chiappinelli_sheng_lafleur)
+hist(bootstrap_corr_medians_coad.chiappinelli_sheng_lafleur)
+hist(bootstrap_corr_medians_lusc.chiappinelli_sheng_lafleur)
+
+```
+
+```{r}
+# canadas vs sheng/lafleur
+# get OV samples
+gdac_selected_cancers_annot_ov <- subset(gdac_selected_cancers_annot,TCGA %in% c("OV"))
+sig1_counts <- gdac_selected_cancers.canadas_tcga_mat[,colnames(gdac_selected_cancers.canadas_tcga_mat) %in% rownames(gdac_selected_cancers_annot_ov)]
+sig2_counts <- gdac_selected_cancers.sheng_lafleur_tcga_mat[,colnames(gdac_selected_cancers.sheng_lafleur_tcga_mat) %in% rownames(gdac_selected_cancers_annot_ov)]
+bootstrap_corr_medians_ov.canadas_sheng_lafleur <- sapply(X = seq_len(R),
+                                 function(x) {
+                                   estimate_corr_median_signatures(sig1_counts,sig2_counts)
+                                 })
+mean_corr_ov.canadas_sheng_lafleur <- mean(bootstrap_corr_medians_ov.canadas_sheng_lafleur)
+ci_corr_ov.canadas_sheng_lafleur <- quantile(bootstrap_corr_medians_ov.canadas_sheng_lafleur,c(0.025,0.975))
+
+# get BRCA samples
+gdac_selected_cancers_annot_brca <- subset(gdac_selected_cancers_annot,TCGA %in% c("BRCA"))
+sig1_counts <- gdac_selected_cancers.canadas_tcga_mat[,colnames(gdac_selected_cancers.canadas_tcga_mat) %in% rownames(gdac_selected_cancers_annot_brca)]
+sig2_counts <- gdac_selected_cancers.sheng_lafleur_tcga_mat[,colnames(gdac_selected_cancers.sheng_lafleur_tcga_mat) %in% rownames(gdac_selected_cancers_annot_brca)]
+bootstrap_corr_medians_brca.canadas_sheng_lafleur <- sapply(X = seq_len(R),
+                                 function(x) {
+                                   estimate_corr_median_signatures(sig1_counts,sig2_counts)
+                                 })
+mean_corr_brca.canadas_sheng_lafleur <- mean(bootstrap_corr_medians_brca.canadas_sheng_lafleur)
+ci_corr_brca.canadas_sheng_lafleur <- quantile(bootstrap_corr_medians_brca.canadas_sheng_lafleur,c(0.025,0.975))
+
+# get COAD samples
+gdac_selected_cancers_annot_coad. <- subset(gdac_selected_cancers_annot,TCGA %in% c("COAD"))
+sig1_counts <- gdac_selected_cancers.canadas_tcga_mat[,colnames(gdac_selected_cancers.canadas_tcga_mat) %in% rownames(gdac_selected_cancers_annot_coad)]
+sig2_counts <- gdac_selected_cancers.sheng_lafleur_tcga_mat[,colnames(gdac_selected_cancers.sheng_lafleur_tcga_mat) %in% rownames(gdac_selected_cancers_annot_coad)]
+bootstrap_corr_medians_coad.canadas_sheng_lafleur <- sapply(X = seq_len(R),
+                                 function(x) {
+                                   estimate_corr_median_signatures(sig1_counts,sig2_counts)
+                                 })
+mean_corr_coad.canadas_sheng_lafleur <- mean(bootstrap_corr_medians_coad.canadas_sheng_lafleur)
+ci_corr_coad.canadas_sheng_lafleur <- quantile(bootstrap_corr_medians_coad.canadas_sheng_lafleur,c(0.025,0.975))
+
+# get LUSC samples
+gdac_selected_cancers_annot_lusc <- subset(gdac_selected_cancers_annot,TCGA %in% c("LUSC"))
+sig1_counts <- gdac_selected_cancers.canadas_tcga_mat[,colnames(gdac_selected_cancers.canadas_tcga_mat) %in% rownames(gdac_selected_cancers_annot_lusc)]
+sig2_counts <- gdac_selected_cancers.sheng_lafleur_tcga_mat[,colnames(gdac_selected_cancers.sheng_lafleur_tcga_mat) %in% rownames(gdac_selected_cancers_annot_lusc)]
+bootstrap_corr_medians_lusc.canadas_sheng_lafleur <- sapply(X = seq_len(R),
+                                 function(x) {
+                                   estimate_corr_median_signatures(sig1_counts,sig2_counts)
+                                 })
+mean_corr_lusc.canadas_sheng_lafleur <- mean(bootstrap_corr_medians_lusc.canadas_sheng_lafleur)
+ci_corr_lusc.canadas_sheng_lafleur <- quantile(bootstrap_corr_medians_lusc.canadas_sheng_lafleur,c(0.025,0.975))
+
+
+# plots
+hist(bootstrap_corr_medians_ov.canadas_sheng_lafleur)
+hist(bootstrap_corr_medians_brca.canadas_sheng_lafleur)
+hist(bootstrap_corr_medians_coad.canadas_sheng_lafleur)
+hist(bootstrap_corr_medians_lusc.canadas_sheng_lafleur)
+
+# use the CI's as interval estimates for the actual signature correlations. 
+```
+
+
+The Chiappinelli and Canadas signatures are not particularly well-correlated with each other (mean correlation is between 0.1 and -0.1 for the tumor types studied). However, what if we limited the chiappinelli signature to genes that go up with AZA treatment (AIM genes include the up- and down-regulated genes, but the genes that increase in expression with AZA-treatment may be informative).
+
+## For the four clusters from TCGA-wide analysis
+
+Just show the highest-expressed and lowest expressed for now
+```{r}
+# highest vs lowest
+# get OV samples
+gdac_selected_cancers_annot_ov <- subset(gdac_selected_cancers_annot,TCGA %in% c("OV"))
+sig1_counts <- highest_unified_counts[,colnames(highest_unified_counts) %in% rownames(gdac_selected_cancers_annot_ov)]
+sig2_counts <- lowest_unified_counts[,colnames(lowest_unified_counts) %in% rownames(gdac_selected_cancers_annot_ov)]
+bootstrap_corr_medians_ov.highest_vs_lowest <- sapply(X = seq_len(R),
+                                 function(x) {
+                                   estimate_corr_median_signatures(sig1_counts,sig2_counts)
+                                 })
+mean_corr_ov.highest_vs_lowest <- mean(bootstrap_corr_medians_ov.highest_vs_lowest)
+ci_corr_ov.highest_vs_lowest <- quantile(bootstrap_corr_medians_ov.highest_vs_lowest,c(0.025,0.975))
+
+# get BRCA samples
+gdac_selected_cancers_annot_brca <- subset(gdac_selected_cancers_annot,TCGA %in% c("BRCA"))
+sig1_counts <- gdac_selected_cancers.canadas_tcga_mat[,colnames(gdac_selected_cancers.canadas_tcga_mat) %in% rownames(gdac_selected_cancers_annot_brca)]
+sig2_counts <- gdac_selected_cancers.sheng_lafleur_tcga_mat[,colnames(gdac_selected_cancers.sheng_lafleur_tcga_mat) %in% rownames(gdac_selected_cancers_annot_brca)]
+bootstrap_corr_medians_brca.highest_vs_lowest <- sapply(X = seq_len(R),
+                                 function(x) {
+                                   estimate_corr_median_signatures(sig1_counts,sig2_counts)
+                                 })
+mean_corr_brca.highest_vs_lowest <- mean(bootstrap_corr_medians_brca.highest_vs_lowest)
+ci_corr_brca.highest_vs_lowest <- quantile(bootstrap_corr_medians_brca.highest_vs_lowest,c(0.025,0.975))
+
+# get COAD samples
+gdac_selected_cancers_annot_coad. <- subset(gdac_selected_cancers_annot,TCGA %in% c("COAD"))
+sig1_counts <- gdac_selected_cancers.canadas_tcga_mat[,colnames(gdac_selected_cancers.canadas_tcga_mat) %in% rownames(gdac_selected_cancers_annot_coad)]
+sig2_counts <- gdac_selected_cancers.sheng_lafleur_tcga_mat[,colnames(gdac_selected_cancers.sheng_lafleur_tcga_mat) %in% rownames(gdac_selected_cancers_annot_coad)]
+bootstrap_corr_medians_coad.highest_vs_lowest <- sapply(X = seq_len(R),
+                                 function(x) {
+                                   estimate_corr_median_signatures(sig1_counts,sig2_counts)
+                                 })
+mean_corr_coad.highest_vs_lowest <- mean(bootstrap_corr_medians_coad.highest_vs_lowest)
+ci_corr_coad.highest_vs_lowest <- quantile(bootstrap_corr_medians_coad.highest_vs_lowest,c(0.025,0.975))
+
+# get LUSC samples
+gdac_selected_cancers_annot_lusc <- subset(gdac_selected_cancers_annot,TCGA %in% c("LUSC"))
+sig1_counts <- gdac_selected_cancers.canadas_tcga_mat[,colnames(gdac_selected_cancers.canadas_tcga_mat) %in% rownames(gdac_selected_cancers_annot_lusc)]
+sig2_counts <- gdac_selected_cancers.sheng_lafleur_tcga_mat[,colnames(gdac_selected_cancers.sheng_lafleur_tcga_mat) %in% rownames(gdac_selected_cancers_annot_lusc)]
+bootstrap_corr_medians_lusc.highest_vs_lowest <- sapply(X = seq_len(R),
+                                 function(x) {
+                                   estimate_corr_median_signatures(sig1_counts,sig2_counts)
+                                 })
+mean_corr_lusc.highest_vs_lowest <- mean(bootstrap_corr_medians_lusc.highest_vs_lowest)
+ci_corr_lusc.highest_vs_lowest <- quantile(bootstrap_corr_medians_lusc.highest_vs_lowest,c(0.025,0.975))
+
+
+# plots
+hist(bootstrap_corr_medians_ov.highest_vs_lowest)
+hist(bootstrap_corr_medians_brca.highest_vs_lowest)
+hist(bootstrap_corr_medians_coad.highest_vs_lowest)
+hist(bootstrap_corr_medians_lusc.highest_vs_lowest)
+```
+
+```{r}
+hist(bootstrap_corr_medians_ov.highest_vs_lowest)
+hist(bootstrap_corr_medians_brca.highest_vs_lowest)
+hist(bootstrap_corr_medians_coad.highest_vs_lowest)
+hist(bootstrap_corr_medians_lusc.highest_vs_lowest)
+
+```
+
+## Conclusions
+
+1. The three signatures from the paper all seem to include different components of tumor innate immunity and the antiviral response. However, the signatures are very inconsistent with each other
+  a. Why would ERV activation lead to such different signatures?
+  b. What happens if we consider only up-regulated components of each signature?
+2. When we pool the signatures, we find four groups that stand out which could constitute a "unified" signature: a highly-expressed subset consisting of housekeeping genes and components of antigen presentation, a more sparsely-expressed subset in tumors, and two more "medium-expressed" subset of genes. One of the two "medium-subsets" is enriched for components of the interferon response pathway.
+3. 

@@ -114,7 +114,7 @@ read_excel_allsheets <- function(filename, tibble = FALSE) {
 
 mmc5_rooney <- read_excel_allsheets(filename = "./data/virus/mmc5.xlsx")
 # we likely want the first sheet
-write.table(x = mmc5_rooney$S5A_CTantigenStats,file = "./virus/mmc5.txt")
+write.table(x = mmc5_rooney$S5A_CTantigenStats,file = "./data/virus/mmc5.txt")
 
 ```
 
@@ -137,6 +137,9 @@ save(redblue, file = "./redblue.Rdata")
 
 
 # Run TIMER
+
+
+NOTE: I NEED TO ADD AN OPTION TO SAVE THE INFERRED INFILTRATE VALUES TO A TABLE (AND THE PANEL EXPRESSION) FOR EACH TUMOR SAMPLE. 
 
 ```{r brca}
 # 4. Running TIMER.
@@ -235,3 +238,4 @@ sink()
 ```
 
 
+# Correlation between TIMER and the three different papers' signatures

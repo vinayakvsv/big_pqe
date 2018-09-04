@@ -25,7 +25,6 @@ biocLite("edgeR")
 source("../pipelines/gsva_script.R")
 
 # TIMER analysis requires a number of R packages, including: ggplot2, ppcor, reshape2, survival, qvalue and CHAT. Make sure you have installed these packages before running the R codes.
-library(ggplot2)
 library(reshape2)
 library(survival)
 install.packages("ppcor")
