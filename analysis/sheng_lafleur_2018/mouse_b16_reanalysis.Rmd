@@ -97,6 +97,9 @@ set DGElist object
 mouse_rnaseq_filt_ind <- apply(X = mouse_rnaseq,MARGIN = 1,function(X) {sum(X) > 0})
 mouse_rnaseq_filt <- mouse_rnaseq[mouse_rnaseq_filt_ind,]
 
+# upper-case the names
+rownames(mouse_rnaseq_filt) <- toupper(rownames(mouse_rnaseq_filt))
+
 # now start estimating dispersions
 mouse_rnaseq_dge <- DGEList(counts=mouse_rnaseq_filt,
                             genes = data.frame(genes = rownames(mouse_rnaseq_filt))) # set DGE list
@@ -105,6 +108,7 @@ mouse_rnaseq_dge <- estimateDisp(y = mouse_rnaseq_dge,
                                  design = mouse_rnaseq_model) # set dispersion factors
 plotBCV(y = mouse_rnaseq_dge)
 # mouse_rnaseq_dge_exactTest <- exactTest(mouse_rnaseq_dge)
+
 ```
 
 ## glm
@@ -139,12 +143,19 @@ mouse_rnaseq_dge_fit_lrt_KO_top_up$table <- subset(mouse_rnaseq_dge_fit_lrt_KO_t
 # mouse_rnaseq_dge_fit_qlf_KO_top$table <- subset(mouse_rnaseq_dge_fit_qlf_KO_top$table,PValue < pval_cutoff & logFC > logFC_edgeR_lim)
  
 plot(x = mouse_rnaseq_dge_fit_lrt_KO_top$table$logFC,
-     y = -log10(mouse_rnaseq_dge_fit_lrt_KO_top$table$FDR),
+     y = -log10(mouse_rnaseq_dge_fit_lrt_KO_top$table$PValue),
      xlim=c(-15,15),
-     pch=20)
+     pch=20,
+     main=paste("Gene expression changes with LSD1 KO in mouse B16 tumors\n",
+                  nrow(mouse_rnaseq_dge_fit_lrt_KO_top_up),
+                  "of",
+                  nrow(mouse_rnaseq_dge_fit_lrt_KO_top),
+                  "genes enriched"),
+     xlab=c("log2FC (log2(LSD1 KO) - log2(Scramble))"),
+     ylab=c("-log10(PValue)"))
 
 points(x = mouse_rnaseq_dge_fit_lrt_KO_top_up$table$logFC,
-       y = -log10(mouse_rnaseq_dge_fit_lrt_KO_top_up$table$FDR),
+       y = -log10(mouse_rnaseq_dge_fit_lrt_KO_top_up$table$PValue),
        col="red",
        pch=20)
  
@@ -210,7 +221,7 @@ Visualize the heatmaps
 
 ```{r}
 mm_dex_gene_names <- unique(c(rownames(mouse_rnaseq_dge_fit_lrt_KO_top_up$table),
-                           rownames(mouse_rnaseq_dge_fit_lrt_DKO_top_up$table)))
+                              rownames(mouse_rnaseq_dge_fit_lrt_DKO_top_up$table)))
 mouse_rnaseq_filt_dex <- mouse_rnaseq_filt[rownames(mouse_rnaseq_filt) %in% toupper(mm_dex_gene_names),]
 pheatmap(mat = log2(mouse_rnaseq_filt_dex+1),
          show_colnames = FALSE,
@@ -294,11 +305,11 @@ rownames(mouse_rnaseq_filt) <- toupper(rownames(mouse_rnaseq_filt))
 rownames(mouse_rnaseq_filt_dex) <- toupper(rownames(mouse_rnaseq_filt_dex))
 
 # perform GSVA with GO terms from Li et al Oncotarget
-mm_c2_genesets_enrich <- gsva_enrich(counts = mouse_rnaseq_filt_dex_dkoc,
+mm_c2_genesets_enrich <- gsva_enrich(counts = mouse_rnaseq_filt_dex_koc,
                                  geneset = mm_c2_genesets)
-mm_c6_genesets_enrich <- gsva_enrich(counts = mouse_rnaseq_filt_dex_dkoc,
+mm_c6_genesets_enrich <- gsva_enrich(counts = mouse_rnaseq_filt_dex_koc,
                                  geneset = mm_c6_genesets)
-mm_c7_genesets_enrich <- gsva_enrich(counts = mouse_rnaseq_filt_dex_dkoc,
+mm_c7_genesets_enrich <- gsva_enrich(counts = mouse_rnaseq_filt_dex_koc,
                                  geneset = mm_c7_genesets)
 mm_c5_bp_enrich <- gsva_enrich(counts = mouse_rnaseq_filt_dex_dkoc,
                                geneset = bp_genesets)

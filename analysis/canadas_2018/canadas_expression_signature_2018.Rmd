@@ -193,7 +193,8 @@ plot(tT_canadas_subset$logFC,
      -log10(tT_canadas_subset$adj.P.Val),
      xlab=c("log2FC (H69M-H69)"),
      ylab="adj.P.val",
-     pch=20)
+     pch=20,
+     main=c("Differential Gene Expression"))
 # tT_canadas_sig_up_h69m <- subset(tT_canadas_subset,adj.P.Val <= alpha & logFC > log2fc_lim)
 # tT_canadas_sig_down_h69m <- subset(tT_canadas_subset,adj.P.Val <= alpha & logFC < -log2fc_lim)
 points(tT_canadas_sig_up_h69m$logFC,
@@ -216,6 +217,14 @@ abline(h = -log10(alpha),
        v = log2fc_lim,
        lty=2,
        col="red")
+
+legend(x = "bottomright",
+       legend = c("Significant up-regulation (reanalysis)",
+                  "Significant up-regulation (original)"),
+       col=c("red",
+             "orange"),
+       cex = 0.75,
+       pch=20)
 
 ```
 
@@ -268,6 +277,10 @@ Save my signatures
 write.table(x = tT_canadas_sig_up_in_sem,file = "./tT_canadas_sig_up_in_sem.txt",row.names = TRUE,col.names = TRUE,sep = "\t",quote = FALSE)
 write.table(x = tT_canadas_sig_up_h69m,file = "./tT_canadas_sig_up_h69m.txt",row.names = TRUE,col.names = TRUE,sep = "\t",quote = FALSE)
 write.table(x = tT_canadas_sig_up_h69m_in_sem,file = "./tT_canadas_sig_up_h69m_in_sem.txt",row.names = TRUE,col.names = TRUE,sep = "\t",quote = FALSE)
+write.table(x = tT_canadas_sig_up_in_sem,file = "./tT_canadas_sig_up_in_sem.txt",row.names = TRUE,col.names = TRUE,sep = "\t",quote = FALSE)
+# write.table(x = tT_canadas_sig_up_h69m,file = "./tT_canadas_sig_up_h69m.txt",row.names = TRUE,col.names = TRUE,sep = "\t",quote = FALSE)
+# write.table(x = tT_canadas_sig_up_h69m_in_sem,file = "./tT_canadas_sig_up_h69m_in_sem.txt",row.names = TRUE,col.names = TRUE,sep = "\t",quote = FALSE)
+
 ```
 
 
@@ -466,7 +479,8 @@ plot(tT_canadas_subset$logFC,
      xlab=c("log2FC (H69M-H69)"),
      ylab="adj.P.val",
      pch=20,
-     col="grey")
+     col="grey",
+     main = c("Gene Signature upregulated in H69M"))
 # tT_canadas_sig_up_h69m <- subset(tT_canadas_subset,adj.P.Val <= alpha & logFC > log2fc_lim)
 # tT_canadas_sig_down_h69m <- subset(tT_canadas_subset,adj.P.Val <= alpha & logFC < -log2fc_lim)
 points(tT_canadas_sig_up_h69m$logFC,
@@ -486,13 +500,13 @@ tT_canadas_3p_utr_erv_sig_all <- subset(tT_canadas_subset,
 
 
 points(tT_canadas_sparcs_up$logFC,
-       -log10(tT_canadas_3utr_ervs_up$adj.P.Val),
+       -log10(tT_canadas_sparcs_up$adj.P.Val),
        pch=20,
        col="blue")
-points(tT_canadas_sparcs_down$logFC,
-       -log10(tT_canadas_3utr_ervs_down$adj.P.Val),
-       pch=20,
-       col="blue")
+# points(tT_canadas_sparcs_down$logFC,
+#        -log10(tT_canadas_sparcs_up$adj.P.Val),
+#        pch=20,
+#        col="blue")
 points(tT_canadas_3p_utr_erv_sig_all$logFC,
        -log10(tT_canadas_3p_utr_erv_sig_all$adj.P.Val),
        pch=3,
@@ -502,6 +516,15 @@ abline(h = -log10(alpha),
        v = log2fc_lim,
        lty=2,
        col="red")
+legend("bottomright",
+       cex=0.75,
+       legend = c("Significant upregulation",
+                  "SPARCS",
+                  "All 3' UTR ERV-containing genes"),
+       col=c("red",
+             "blue",
+             "cornflower blue"),
+       pch=c(20,20,3))
 
 # save the sparcs
 write.table(x = tT_canadas_sparcs_all,file = "./tT_canadas_sparcs.txt",row.names = TRUE,col.names = TRUE,sep = "\t",quote = FALSE)

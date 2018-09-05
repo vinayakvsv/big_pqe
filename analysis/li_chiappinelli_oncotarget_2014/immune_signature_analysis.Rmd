@@ -488,26 +488,26 @@ plot_sig_up_genes <- lapply(seq_along(along.with = sig_up_genes),
                            points(x.tT.sig_down$AveExpr,
                                 -log10(x.tT.sig_down$adj.P.Val),
                                 pch=20,
-                                col="cornflower blue")
+                                col="grey")
                            # sig genes in signature
                            x.tT.signature <- sig_up_genes_in_signature[[x]]
                            x.tT.signature_down <- sig_down_genes_in_signature[[x]]
                            points(x.tT.signature$AveExpr,
                                 -log10(x.tT.signature$adj.P.Val),
                                 pch=20,
-                                col="pink")
+                                col="cornflower blue")
                            points(x.tT.signature_down$AveExpr,
                                 -log10(x.tT.signature_down$adj.P.Val),
                                 pch=20,
-                                col="orange")
-
+                                col="cornflower blue")
                            legend(x = "topright",
                                   legend = c("all genes",
                                              "significantly increased expression",
                                              "immune signature"),
                                   col = c("black",
                                           "grey",
-                                          "pink"))
+                                          "cornflower blue"),
+                                  pch=20)
                          })
 ```
 
@@ -663,47 +663,85 @@ write.table(x = test_down_ifn_signature_probeInd_genes,file = "test_down_ifn_sig
 
 ```
 
+# Manual 
+
+Chiappinelli had experimentally validated a 30-gene subset of the AIM that they use as their signature. How does this signature look? 
+
+```{r}
+experimentally_valid_signature <- read.table(file = "manually_written_signature.true_unique.txt",
+                                             header = FALSE)
+par(mfrow=c(1,3))
+plot_sig_up_genes <- lapply(seq_along(along.with = sig_up_genes),
+                         function(x) {
+                           x.tT <- by_cell_fits_topTables[[x]]
+                           x.tT.sig <- sig_up_genes[[x]]
+                           x.tT.sig_down <- sig_down_genes[[x]]
+                           # all points
+                           # ylim_padj <- min(x.tT.sig$"adj.P.Val",na.rm = TRUE)
+                           # print(-log10(ylim_padj))
+                           ylim_x <- -log10(x.tT$adj.P.Val)[!is.na(-log10(x.tT$adj.P.Val))]
+                           plot(x.tT$AveExpr,
+                                -log10(x.tT$adj.P.Val),
+                                pch=20,
+                                main=toupper(names(sig_up_genes)[x]),
+                                xlab=c("Average log2 expression"),
+                                ylab=c("-log10(adj p value)"),
+                                xlim=c(-3,3),
+                                ylim=c(0,max(ylim_x)))
+                           abline(h = -log10(alpha),
+                                  lty=2,
+                                  col="red",
+                                  lwd=2)
+                           # sig genes
+                           points(x.tT.sig$AveExpr,
+                                -log10(x.tT.sig$adj.P.Val),
+                                pch=20,
+                                col="grey")
+                           points(x.tT.sig_down$AveExpr,
+                                -log10(x.tT.sig_down$adj.P.Val),
+                                pch=20,
+                                col="grey")
+                           # sig genes in signature
+                           x.tT.signature <- sig_up_genes_in_signature[[x]]
+                           x.tT.signature_down <- sig_down_genes_in_signature[[x]]
+                           points(x.tT.signature$AveExpr,
+                                -log10(x.tT.signature$adj.P.Val),
+                                pch=20,
+                                col="cornflower blue")
+                           points(x.tT.signature_down$AveExpr,
+                                -log10(x.tT.signature_down$adj.P.Val),
+                                pch=20,
+                                col="cornflower blue")
+                           # mark the genes that were experimentally-validated
+                           x.tT.experimental <- subset(x.tT,GENE_SYMBOL %in% experimentally_valid_signature$V1)
+                           points(x.tT.experimental$AveExpr,
+                                -log10(x.tT.experimental$adj.P.Val),
+                                pch=20,
+                                col="red")
+
+                           # legend(x = "topright",
+                           #        legend = c("all genes",
+                           #                   "significant up- or down-regulation",
+                           #                   "AIM",
+                           #                   "Experimentally-validated signature"),
+                           #        col = c("black",
+                           #                "grey",
+                           #                "cornflower blue",
+                           #                "red"),cex = 0.75,
+                           #        pch=20)
+                         })
 
 
-# Scraps
-
-Decide tests
-```{}
-# decideTests will determine which genes are significantly expressed (up or down) for each contrast that we tested. 
-fit_bycell_bytime_decideTests <- decideTests(object = fit_bycell_bytime_ebayes,method = "global",adjust.method = "fdr",p.value = alpha)
-# this gives us the top table, and we can select specific genes based on the output from decideTests
-tT_bycell_bytime <- topTable(fit_bycell_bytime_ebayes, adjust="fdr", sort.by="B",number = nrow(fit_bytime_ebayes))
-# summarize which genes are significant
-print(summary(fit_bycell_bytime_decideTests))
-# get the genes that 
 ```
 
-```{}
-# compare breast to all 
-cont.matrix <- makeContrasts(breast-colon, levels=design)
-# fit1 <- contrasts.fit(fit,cont.matrix)
-fit2 <- contrasts.fit(fit_bycell, cont.matrix)
-# fit1 <- eBayes(fit1, 1)
-fit2 <- eBayes(fit2, 0.01)
-tT <- topTable(fit2, adjust="fdr", sort.by="B", number=250)
-# allT <- topTable(fit2, adjust="none", sort.by="B",number = nrow(fit2))
-tT <- topTable(fit2, adjust="fdr", sort.by="B",number = nrow(fit2))
-
-# write results
-# write.table(x = tT,file = paste(getwd(),"topTable.txt",sep = "/"),quote = FALSE,sep = "\t",row.names = TRUE,col.names = TRUE)
-
-# allT_subset <- subset(allT, select=c("ID","adj.P.Val","P.Value","t","B","logFC","GENE_SYMBOL","GENE_NAME"))
-tT_subset <- subset(tT, select=c("ID","adj.P.Val","P.Value","t","B","logFC","GENE_SYMBOL","GENE_NAME"))
+Level of intersection
+```{r}
+venn.diagram(x = list(AIM=unique(test_down_ifn_signature,test_ifn_signature),
+                      Experimental=experimentally_valid_signature$V1),
+             filename = "./intersection_AIM_Experimental.png",imagetype = "png",sub.fontfamily = "Arial",main.fontfamily = "Arial")
 
 ```
 
-Depict the design
-```{}
-library(pheatmap)
-pheatmap(design,show_rownames = FALSE)
-```
-
-Methylation analysis will be done in the "extended" analysis
 
 # GSVA analysis
 
@@ -856,4 +894,42 @@ pheatmap(chiappinelli_virus_enrich,
 
 We see strong values for the Li et al Oncotarget GO terms, and most of the variation appears to be between cell lines. We can be assured that we have a good approximation of our signal. 
 
-# ERV analysis
+# Scraps
+
+Decide tests
+```{}
+# decideTests will determine which genes are significantly expressed (up or down) for each contrast that we tested. 
+fit_bycell_bytime_decideTests <- decideTests(object = fit_bycell_bytime_ebayes,method = "global",adjust.method = "fdr",p.value = alpha)
+# this gives us the top table, and we can select specific genes based on the output from decideTests
+tT_bycell_bytime <- topTable(fit_bycell_bytime_ebayes, adjust="fdr", sort.by="B",number = nrow(fit_bytime_ebayes))
+# summarize which genes are significant
+print(summary(fit_bycell_bytime_decideTests))
+# get the genes that 
+```
+
+```{}
+# compare breast to all 
+cont.matrix <- makeContrasts(breast-colon, levels=design)
+# fit1 <- contrasts.fit(fit,cont.matrix)
+fit2 <- contrasts.fit(fit_bycell, cont.matrix)
+# fit1 <- eBayes(fit1, 1)
+fit2 <- eBayes(fit2, 0.01)
+tT <- topTable(fit2, adjust="fdr", sort.by="B", number=250)
+# allT <- topTable(fit2, adjust="none", sort.by="B",number = nrow(fit2))
+tT <- topTable(fit2, adjust="fdr", sort.by="B",number = nrow(fit2))
+
+# write results
+# write.table(x = tT,file = paste(getwd(),"topTable.txt",sep = "/"),quote = FALSE,sep = "\t",row.names = TRUE,col.names = TRUE)
+
+# allT_subset <- subset(allT, select=c("ID","adj.P.Val","P.Value","t","B","logFC","GENE_SYMBOL","GENE_NAME"))
+tT_subset <- subset(tT, select=c("ID","adj.P.Val","P.Value","t","B","logFC","GENE_SYMBOL","GENE_NAME"))
+
+```
+
+Depict the design
+```{}
+library(pheatmap)
+pheatmap(design,show_rownames = FALSE)
+```
+
+Methylation analysis will be done in the "extended" analysis

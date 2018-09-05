@@ -99,12 +99,12 @@ logFC_edgeR_lim <- 1
 pval_cutoff <- 0.05
 n_toptag <- 10000
 # coef = 1 measures the baseline genes
-human_rnaseq_dge_fit_coeff1_qlft <- glmQLFTest(glmfit = human_rnaseq_dge_fit,
-                                               coef = 1)
-# coef = 2 measures the fold-changes between the control and the fold change
-human_rnaseq_dge_fit_coeff2_qlft <- glmQLFTest(glmfit = human_rnaseq_dge_fit,
-                                               coef = 2,
-                                               poisson.bound = TRUE)
+# human_rnaseq_dge_fit_coeff1_qlft <- glmQLFTest(glmfit = human_rnaseq_dge_fit,
+#                                                coef = 1)
+# # coef = 2 measures the fold-changes between the control and the fold change
+# human_rnaseq_dge_fit_coeff2_qlft <- glmQLFTest(glmfit = human_rnaseq_dge_fit,
+#                                                coef = 2,
+#                                                poisson.bound = TRUE)
 
 # coef = 2, but we use a LRT. 
 human_rnaseq_dge_fit_coeff2_lrt <- glmLRT(glmfit = human_rnaseq_dge_fit,
@@ -138,7 +138,14 @@ human_rnaseq_dge_fit_coeff2_lrt_top_up$table <- subset(human_rnaseq_dge_fit_coef
 # plot the fold-changes-vs-pvalue and the top genes by the LRT
 plot(human_rnaseq_dge_fit_coeff2_lrt$table$logFC,
      -log10(human_rnaseq_dge_fit_coeff2_lrt$table$PValue),
-     pch=20)
+     pch=20,
+     xlab=c("log2FC (log2(shLSD1) - log2(shC))"),
+     ylab=c("-log10(PValue)"),
+     main=c(paste("Gene expression differences with LSD1 KD\n",
+                  nrow(human_rnaseq_dge_fit_coeff2_lrt_top_up),
+                  "of",
+                  nrow(human_rnaseq_dge_fit_coeff2_lrt$table),
+                  "genes enriched")))
 points(human_rnaseq_dge_fit_coeff2_lrt_top_up$table$logFC,
        -log10(human_rnaseq_dge_fit_coeff2_lrt_top_up$table$PValue),
        col="red",pch=20)
@@ -685,6 +692,35 @@ write.table(x = ifn_viral_signature,
 write.table(x = ifn_viral_signature_table,
             file = "ifn_viral_signature_table_shenglafleur_hs.txt",
             quote = FALSE,sep = "\t",row.names = TRUE,col.names = TRUE)
+
+```
+
+Plot again
+```{r}
+plot(human_rnaseq_dge_fit_coeff2_lrt$table$logFC,
+     -log10(human_rnaseq_dge_fit_coeff2_lrt$table$PValue),
+     pch=20,
+     xlab=c("log2FC (log2(shLSD1) - log2(shC))"),
+     ylab=c("-log10(PValue)"),
+     main=c(paste("Gene expression differences with LSD1 KD\n",
+                  nrow(human_rnaseq_dge_fit_coeff2_lrt_top_up),
+                  "of",
+                  nrow(human_rnaseq_dge_fit_coeff2_lrt$table),
+                  "genes enriched")))
+points(human_rnaseq_dge_fit_coeff2_lrt_top_up$table$logFC,
+       -log10(human_rnaseq_dge_fit_coeff2_lrt_top_up$table$PValue),
+       col="red",pch=20)
+points(ifn_viral_signature_table$logFC,
+       -log10(ifn_viral_signature_table$PValue),
+       col="cornflower blue",pch=20)
+legend(x = "topleft",
+       legend = c("All Genes",
+                  "Significant DEX",
+                  "Signature Genes"),
+       pch=20,
+       col = c("black",
+               "red",
+               "cornflower blue"))
 
 ```
 

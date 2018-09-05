@@ -54,6 +54,11 @@ ifn_signature_genes_list <- do.call(rbind,
                                     list(ifn_signature_up_genes_list,
                                          ifn_signature_down_genes_list))
 chiappinelli_ifn_signature_unique_genes <- unique(ifn_signature_genes_list$gene)
+
+# experimentally-annotated signatures
+chiappinelli_ifn_signature_experimental <- read.table(file = "li_chiappinelli_oncotarget_2014/manually_written_signature.true_unique.txt",
+                                                      sep = "\t")
+
 # annotate these signatures
 chiappinelli_ifn_signature_unique_genes_annot<- data.frame(is_up = chiappinelli_ifn_signature_unique_genes %in% ifn_signature_up_genes_list$gene,
                                                            is_down = chiappinelli_ifn_signature_unique_genes %in% ifn_signature_down_genes_list$gene)
@@ -65,6 +70,7 @@ chiappinelli_ifn_signature_unique_genes_annot$is_down <- factor(x = chiappinelli
                                                               labels = c(0,1))
 
 rownames(chiappinelli_ifn_signature_unique_genes_annot) <- chiappinelli_ifn_signature_unique_genes
+
 ```
 
 ```{r get_canadas_sig}
@@ -216,13 +222,34 @@ chiappinelli_ifn_signature_tcga <- sapply(chiappinelli_ifn_signature_unique_gene
                                                        ignore.case = FALSE)
                                             rownames(gdac_selected_cancers)[a]
                                           })
+
+chiappinelli_ifn_signature_experimental <- sapply(chiappinelli_ifn_signature_experimental$V1,
+                                          function(g) {
+                                            a <- grepl(pattern = as.character(paste0("^",g,"\\|")),
+                                                       x = rownames(gdac_selected_cancers),
+                                                       ignore.case = FALSE)
+                                            rownames(gdac_selected_cancers)[a]
+                                          })
+  
+  
+# gdac_selected_cancers.chiappinelli_tcga_mat[rownames(gdac_selected_cancers) %in% chiappinelli_ifn_signature_experimental$V1,]
+
 gdac_selected_cancers.chiappinelli_tcga <- gdac_selected_cancers[rownames(gdac_selected_cancers) %in% 
                                                                    unlist(chiappinelli_ifn_signature_tcga),]
+gdac_selected_cancers.chiappinelli_tcga_experimental <- gdac_selected_cancers[rownames(gdac_selected_cancers) %in% 
+                                                                   unlist(chiappinelli_ifn_signature_experimental),]
+
 rownames(gdac_selected_cancers.chiappinelli_tcga) <- sapply(rownames(gdac_selected_cancers.chiappinelli_tcga),
                                                             function(x) {
                                                               a <- unlist(strsplit(x = x,split = "|",fixed = TRUE))
                                                               a[1]
                                                             })
+rownames(gdac_selected_cancers.chiappinelli_tcga_experimental) <- sapply(rownames(gdac_selected_cancers.chiappinelli_tcga_experimental),
+                                                            function(x) {
+                                                              a <- unlist(strsplit(x = x,split = "|",fixed = TRUE))
+                                                              a[1]
+                                                            })
+
 #rownames(gdac_selected_cancers.chiappinelli_tcga) <- names(unlist(chiappinelli_ifn_signature_tcga))
 
 gdac_selected_cancers.chiappinelli_tcga_mat <- apply(X = gdac_selected_cancers.chiappinelli_tcga,
@@ -230,10 +257,19 @@ gdac_selected_cancers.chiappinelli_tcga_mat <- apply(X = gdac_selected_cancers.c
                                                  FUN = function(x) {
                                                    as.numeric(x)
                                                  })
+gdac_selected_cancers.chiappinelli_experimental_tcga_mat <- apply(X = gdac_selected_cancers.chiappinelli_tcga_experimental,
+                                                 MARGIN = 2,
+                                                 FUN = function(x) {
+                                                   as.numeric(x)
+                                                 })
+
 rownames(gdac_selected_cancers.chiappinelli_tcga_mat) <- rownames(gdac_selected_cancers.chiappinelli_tcga)
+rownames(gdac_selected_cancers.chiappinelli_experimental_tcga_mat) <- rownames(gdac_selected_cancers.chiappinelli_tcga_experimental)
+
   #grep(pattern = paste0(chiappinelli_ifn_signature_unique_genes,"|"),x = rownames(gdac_selected_cancers),ignore.case = TRUE)
 
 # gdac_selected_cancers.chiappinelli <- gdac_selected_cancers[]
+
 
 ```
 
@@ -250,6 +286,18 @@ chiappinelli_tcga_clust <- pheatmap(mat = log10(gdac_selected_cancers.chiappinel
          main = c(paste("DEX genes from Li et al 2014 and Chiappinelli et al 2015\nin",ncol(gdac_selected_cancers.chiappinelli_tcga_mat),"TCGA samples")))
 dev.off()
 # plot(chiappinelli_tcga_clust)
+# experimental verification
+chiappinelli_experimental_tcga_clust <- pheatmap(mat = log10(gdac_selected_cancers.chiappinelli_experimental_tcga_mat+1),
+         show_colnames = FALSE,
+         show_rownames = TRUE,
+         fontsize_row = 5.0,
+         annotation_col = gdac_selected_cancers_annot,
+         legend_labels = c("log10(RSEM-scaled counts+1)"),
+         cutree_rows = 4,
+         main = c(paste("Experimentally-validated signature from Chiappinelli et al 2015\nin",ncol(gdac_selected_cancers.chiappinelli_tcga_mat),"TCGA samples")))
+venn.diagram(x = list(AIM=rownames(gdac_selected_cancers.chiappinelli_tcga_mat),
+                      Experimental=rownames(gdac_selected_cancers.chiappinelli_experimental_tcga_mat)),
+             filename = "./chiappinell_intersection_AIM_Experimental.png",imagetype = "png",sub.fontfamily = "Arial",main.fontfamily = "Arial")
 ```
 
 the specific ERV signature?
@@ -648,7 +696,7 @@ ifn_highest <- gsva_enrich(counts = highest_unified_counts,
 pheatmap(mat = ifn_highest,
          annotation_col = gdac_selected_cancers_annot,
          show_colnames = FALSE,
-         fontsize = 4.0,
+         fontsize = 5.0,
          main=paste("IFN, highest-expression cluster"))
 
 # ifn_med2 <- gsva_enrich(counts = med2_unified_counts,geneset = interferon_genesets) # error is here
