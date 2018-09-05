@@ -1123,17 +1123,26 @@ ylim_all <- max(canadas_3putr_brca_timer_signature,
                 canadas_brca_timer_signature,
                 chiappinelli_brca_timer_signature,
                 sheng_lafleur_brca_timer_signature)
+ylim_min_all <- min(canadas_3putr_brca_timer_signature,
+                canadas_brca_timer_signature,
+                chiappinelli_brca_timer_signature,
+                sheng_lafleur_brca_timer_signature)
+
+ylim_all <- 4.0
+ylim_min_all <- 0.0
+xlim_all <- 3.0
+xlim_min_all <- 0.0
 
 # plot correlations
 par(mfrow = c(1,3))
 plot(x = brca_fmat[,1],
      y = chiappinelli_brca_timer_signature,
-     xlim=c(0,max(brca_fmat)),
-     ylim=c(0,ylim_all),
+     xlim=c(xlim_min_all,xlim_all),
+     ylim=c(ylim_min_all,ylim_all),
      xlab=c("TIMER value"),
      ylab=c("Median IFN-viral signature value (log10(counts))"),
      type = "n",
-     main = paste0("Chiappinelli signature-TIMER correlation, BRCA"))
+     main = paste0("Chiappinelli"))
 chiappinelli_brca_timer_signature_cor <- lapply(X = seq_along(brca_fmat),
       function(x) {
         points(y = chiappinelli_brca_timer_signature,
@@ -1154,12 +1163,12 @@ legend(x = "bottomright",
 # plot correlations
 plot(x = brca_fmat[,1],
      y = canadas_brca_timer_signature,
-     xlim=c(0,max(brca_fmat)),
-     ylim=c(0,ylim_all),
+     xlim=c(xlim_min_all,xlim_all),
+     ylim=c(ylim_min_all,ylim_all),
      xlab=c("TIMER value"),
      ylab=c("Median IFN-viral signature value (log10(counts))"),
      type = "n",
-     main = paste0("Canadas signature-TIMER correlation, BRCA"))
+     main = paste0("Canadas"))
 canadas_brca_timer_signature_cor <- lapply(X = seq_along(brca_fmat),
       function(x) {
         points(y = canadas_brca_timer_signature,
@@ -1206,12 +1215,12 @@ legend(x = "bottomright",
 # plot correlations
 plot(x = brca_fmat[,1],
      y = sheng_lafleur_brca_timer_signature,
-     xlim=c(0,max(brca_fmat)),
-     ylim=c(0,ylim_all),
+     xlim=c(xlim_min_all,xlim_all),
+     ylim=c(ylim_min_all,ylim_all),
      xlab=c("TIMER value"),
      ylab=c("Median IFN-viral signature value (log10(counts))"),
      type = "n",
-     main = paste0("Sheng and LaFleur signature-TIMER correlation, BRCA"))
+     main = paste0("Sheng and LaFleur"))
 sheng_lafleur_brca_timer_signature_cor <- lapply(X = seq_along(brca_fmat),
       function(x) {
         points(y = sheng_lafleur_brca_timer_signature,
@@ -1263,12 +1272,12 @@ ov_fmat_colors <- rainbow(n = ncol(ov_fmat))
 par(mfrow = c(1,3))
 plot(x = ov_fmat[,1],
      y = chiappinelli_ov_timer_signature,
-     xlim=c(0,max(ov_fmat)),
-     ylim=c(0,ylim_all),
+     xlim=c(xlim_min_all,xlim_all),
+     ylim=c(ylim_min_all,ylim_all),
      xlab=c("TIMER value"),
      ylab=c("Median IFN-viral signature value (log10(counts))"),
      type = "n",
-     main = paste0("Chiappinelli signature-TIMER correlation, ov"))
+     main = paste0("Chiappinelli"))
 chiappinelli_ov_timer_signature_cor <- lapply(X = seq_along(ov_fmat),
       function(x) {
         points(y = chiappinelli_ov_timer_signature,
@@ -1289,12 +1298,12 @@ legend(x = "bottomright",
 # plot correlations
 plot(x = ov_fmat[,1],
      y = canadas_ov_timer_signature,
-     xlim=c(0,max(ov_fmat)),
-     ylim=c(0,ylim_all),
+     xlim=c(xlim_min_all,xlim_all),
+     ylim=c(ylim_min_all,ylim_all),
      xlab=c("TIMER value"),
      ylab=c("Median IFN-viral signature value (log10(counts))"),
      type = "n",
-     main = paste0("Canadas signature-TIMER correlation, ov"))
+     main = paste0("Canadas"))
 canadas_ov_timer_signature_cor <- lapply(X = seq_along(ov_fmat),
       function(x) {
         points(y = canadas_ov_timer_signature,
@@ -1341,12 +1350,12 @@ legend(x = "bottomright",
 # plot correlations
 plot(x = ov_fmat[,1],
      y = sheng_lafleur_ov_timer_signature,
-     xlim=c(0,max(ov_fmat)),
-     ylim=c(0,ylim_all),
+     xlim=c(xlim_min_all,xlim_all),
+     ylim=c(ylim_min_all,ylim_all),
      xlab=c("TIMER value"),
      ylab=c("Median IFN-viral signature value (log10(counts))"),
      type = "n",
-     main = paste0("Sheng and LaFleur signature-TIMER correlation, ov"))
+     main = paste0("Sheng and LaFleur"))
 sheng_lafleur_ov_timer_signature_cor <- lapply(X = seq_along(ov_fmat),
       function(x) {
         points(y = sheng_lafleur_ov_timer_signature,
@@ -1397,12 +1406,12 @@ lusc_fmat_colors <- rainbow(n = ncol(lusc_fmat))
 par(mfrow = c(1,3))
 plot(x = lusc_fmat[,1],
      y = chiappinelli_lusc_timer_signature,
-     xlim=c(0,max(lusc_fmat)),
-     ylim=c(0,ylim_all),
+     xlim=c(xlim_min_all,xlim_all),
+     ylim=c(ylim_min_all,ylim_all),
      xlab=c("TIMER value"),
      ylab=c("Median IFN-viral signature value (log10(counts))"),
      type = "n",
-     main = paste0("Chiappinelli signature-TIMER correlation, lusc"))
+     main = paste0("Chiappinelli"))
 chiappinelli_lusc_timer_signature_cor <- lapply(X = seq_along(lusc_fmat),
       function(x) {
         points(y = chiappinelli_lusc_timer_signature,
@@ -1423,12 +1432,12 @@ legend(x = "bottomright",
 # plot correlations
 plot(x = lusc_fmat[,1],
      y = canadas_lusc_timer_signature,
-     xlim=c(0,max(lusc_fmat)),
-     ylim=c(0,ylim_all),
+     xlim=c(xlim_min_all,xlim_all),
+     ylim=c(ylim_min_all,ylim_all),
      xlab=c("TIMER value"),
      ylab=c("Median IFN-viral signature value (log10(counts))"),
      type = "n",
-     main = paste0("Canadas signature-TIMER correlation, lusc"))
+     main = paste0("Canadas"))
 canadas_lusc_timer_signature_cor <- lapply(X = seq_along(lusc_fmat),
       function(x) {
         points(y = canadas_lusc_timer_signature,
@@ -1475,12 +1484,12 @@ legend(x = "bottomright",
 # plot correlations
 plot(x = lusc_fmat[,1],
      y = sheng_lafleur_lusc_timer_signature,
-     xlim=c(0,max(lusc_fmat)),
-     ylim=c(0,ylim_all),
+     xlim=c(xlim_min_all,xlim_all),
+     ylim=c(ylim_min_all,ylim_all),
      xlab=c("TIMER value"),
      ylab=c("Median IFN-viral signature value (log10(counts))"),
      type = "n",
-     main = paste0("Sheng and LaFleur signature-TIMER correlation, lusc"))
+     main = paste0("Sheng and LaFleur"))
 sheng_lafleur_lusc_timer_signature_cor <- lapply(X = seq_along(lusc_fmat),
       function(x) {
         points(y = sheng_lafleur_lusc_timer_signature,
@@ -1532,12 +1541,12 @@ coad_fmat_colors <- rainbow(n = ncol(coad_fmat))
 par(mfrow = c(1,3))
 plot(x = coad_fmat[,1],
      y = chiappinelli_coad_timer_signature,
-     xlim=c(0,max(coad_fmat)),
-     ylim=c(0,ylim_all),
+     xlim=c(xlim_min_all,xlim_all),
+     ylim=c(ylim_min_all,ylim_all),
      xlab=c("TIMER value"),
      ylab=c("Median IFN-viral signature value (log10(counts))"),
      type = "n",
-     main = paste0("Chiappinelli signature-TIMER correlation, coad"))
+     main = paste0("Chiappinelli"))
 chiappinelli_coad_timer_signature_cor <- lapply(X = seq_along(coad_fmat),
       function(x) {
         points(y = chiappinelli_coad_timer_signature,
@@ -1558,12 +1567,12 @@ legend(x = "bottomright",
 # plot correlations
 plot(x = coad_fmat[,1],
      y = canadas_coad_timer_signature,
-     xlim=c(0,max(coad_fmat)),
-     ylim=c(0,ylim_all),
+     xlim=c(xlim_min_all,xlim_all),
+     ylim=c(ylim_min_all,ylim_all),
      xlab=c("TIMER value"),
      ylab=c("Median IFN-viral signature value (log10(counts))"),
      type = "n",
-     main = paste0("Canadas signature-TIMER correlation, coad"))
+     main = paste0("Canadas"))
 canadas_coad_timer_signature_cor <- lapply(X = seq_along(coad_fmat),
       function(x) {
         points(y = canadas_coad_timer_signature,
@@ -1610,12 +1619,12 @@ legend(x = "bottomright",
 # plot correlations
 plot(x = coad_fmat[,1],
      y = sheng_lafleur_coad_timer_signature,
-     xlim=c(0,max(coad_fmat)),
-     ylim=c(0,ylim_all),
+     xlim=c(xlim_min_all,xlim_all),
+     ylim=c(ylim_min_all,ylim_all),
      xlab=c("TIMER value"),
      ylab=c("Median IFN-viral signature value (log10(counts))"),
      type = "n",
-     main = paste0("Sheng and LaFleur signature-TIMER correlation, coad"))
+     main = paste0("Sheng LaFleur"))
 sheng_lafleur_coad_timer_signature_cor <- lapply(X = seq_along(coad_fmat),
       function(x) {
         points(y = sheng_lafleur_coad_timer_signature,
