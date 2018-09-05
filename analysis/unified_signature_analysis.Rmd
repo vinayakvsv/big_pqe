@@ -353,6 +353,16 @@ dev.off()
 # plot(chiappinelli_tcga_clust)
 ```
 
+```{r}
+venn.diagram(x = list(SPARCS=canadas_sparcs_nsclc$GENE_SYMBOL,
+                      All.Diff=rownames(gdac_selected_cancers.canadas_tcga_mat)),
+             filename = "./sparcs_diff_canadas_venn.png",imagetype = "png")
+venn.diagram(x = list(ERV.3putr=canadas_3putr_nsclc$GENE_SYMBOL,
+                      All.Diff=rownames(gdac_selected_cancers.canadas_tcga_mat)),
+             filename = "./3putr_diff_canadas_venn.png",imagetype = "png")
+
+```
+
 Cluster 2 seems to be a "lung inflammatory" sub-signature
 
 ```{r}
@@ -362,7 +372,7 @@ pdf(file = "canadas_3pUTR_DEX_all.pdf")
 canadas_3putrerv_tcga_clust <- pheatmap(mat = log10(gdac_selected_cancers.canadas_tcga_mat_3putr+1),
          show_colnames = FALSE,
          show_rownames = TRUE,
-         fontsize_row = 5.0,
+         fontsize_row = 6.0,
          annotation_col = gdac_selected_cancers_annot,
          legend_labels = c("log10(RSEM-scaled counts+1)"),
          main = c(paste("3' UTR ERV-containing DEX genes from Canadas et al 2014 and\nCanadas et al 2018 in",ncol(gdac_selected_cancers.chiappinelli_tcga_mat),"TCGA samples")))
@@ -439,6 +449,16 @@ dev.off()
 
 
 The "up-regulation" and "down-regulation" subsets from the cell lines don't exactly predict the "high" and "low" subsets in the patients. How consistent is the classifier?
+
+### Signature intersections
+
+```{r}
+all_paper_sigs <- list(sheng_lafleur = sheng_lafleur_signature_unique_genes,
+                       chiappinelli = chiappinelli_ifn_signature_experimental$V1,
+                       canadas = canadas_sparcs_nsclc$GENE_SYMBOL)
+venn.diagram(x = all_paper_sigs,filename = "./intersection_all_signatures.png",imagetype = "png",
+             main = "Intersection between paper-selected signatures")
+```
 
 
 ### Consolidated signature
