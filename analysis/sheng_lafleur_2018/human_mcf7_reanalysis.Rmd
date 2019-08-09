@@ -22,14 +22,14 @@ source("https://bioconductor.org/biocLite.R")
 biocLite("Biobase")
 biocLite("GEOquery")
 biocLite("limma")
-biocLite("edgeR")
+biocLite("edgeR") # install edgeR
 biocLite("gProfileR")
-biocLite("GSVA")
+biocLite("GSVA") # intended for gene set variation analysis, a form of gene enrichment analysis
 biocLite("GO.db")
-biocLite("org.Hs.eg.db")
+biocLite("org.Hs.eg.db") # human gene set
 biocLite("org.Mm.eg.db")
-source("../../pipelines/gsva_script.R")
-biocLite("EnsDb.Hsapiens.v86")
+source("../../pipelines/gsva_script.R") # I wrote a script to conduct gene set variation analysis
+biocLite("EnsDb.Hsapiens.v86") # ENSEMBL human gene set
 ```
 
 ```{r}
@@ -58,9 +58,15 @@ human_erv <- read.csv(file = "../../datasets/sheng_lafleur/GSE112230_2018-03-22_
 ## design
 
 ```{r}
+# build the design/model matrix:
+# Example: suppose you had 10 samples, five from a healthy patient and five from a sick patient. A design matrix is meant to describe the conditions of your samples with numbers (eg: 0-1 for a binary representation of whether the patient is sick or not; eg: 1,2,3,... to indicate some severity of sickness). In the standard regression equation Y = Xb + e, the m x n matrix X represents the design matrix
+# A design matrix can encode multiple conditions describing the samples. For example, if you wish to describe your patient's illness severity and how many copies of a risk allele your patient carries (0, 1, or 2), then each of the rows of your design matrix represent a patient, and each column represents a particular condition (column 1 is illness severity, column 2 is number of risk alleles)
+# each b is fitted to represent the link between a condition and the outcome variable Y (in this case, gene expression level)
 #human_rnaseq_design <- data.frame()
+# represent each sample as coming from the MCF cell line
 human_rnaseq_design <- data.frame(cell = factor(rep("MCF7",ncol(human_rnaseq))))
 rownames(human_rnaseq_design) <- colnames(human_rnaseq)
+# represent whether the sample came from a 
 human_rnaseq_design$treatment <- factor(c(rep("shC",2),rep("shLSD1",2)))
 human_rnaseq_design$rep <- factor(c(1,2,1,2))
 print(human_rnaseq_design)
@@ -76,6 +82,7 @@ print(human_rnaseq_model_matrix)
 ## dge list
 set DGElist object
 ```{r dgelist}
+# create the DGElist object to formally carry out differential gene expression
 human_rnaseq_dge <- DGEList(counts=human_rnaseq,
                             genes = data.frame(genes = rownames(human_rnaseq))) # set DGE list
 human_rnaseq_dge <- calcNormFactors(object = human_rnaseq_dge) # set normalization factors
@@ -89,6 +96,7 @@ plotBCV(y = human_rnaseq_dge)
 fit GLM
 NEed to redo with glmFit
 ```{r}
+# fit a generalized linear model to our gene expression data and our model matrix. 
 human_rnaseq_dge_fit <- glmFit(human_rnaseq_dge, human_rnaseq_model_matrix)
 ```
 
@@ -106,7 +114,7 @@ n_toptag <- 10000
 #                                                coef = 2,
 #                                                poisson.bound = TRUE)
 
-# coef = 2, but we use a LRT. 
+# coef = 2, but we use a LRT (likelihood ratio test)
 human_rnaseq_dge_fit_coeff2_lrt <- glmLRT(glmfit = human_rnaseq_dge_fit,
                                           coef = 2)
 
@@ -155,6 +163,8 @@ plotMD(object = human_rnaseq_dge_fit_coeff2_lrt,adjust.method = "BH",p.value = p
 ```
 
 # GO analysis
+
+Gene ontology analysis
 
 ## preparation
 We must convert the ENSEMBL names to gene symbols
